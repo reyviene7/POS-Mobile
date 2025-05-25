@@ -37,6 +37,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "80ca0597-91d3-4a4c-ae0b-8fbc1be8b388"
+      }
+    },
+    "owner": "reyviene7"
   }
 }
