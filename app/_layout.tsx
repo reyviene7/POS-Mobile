@@ -1,71 +1,31 @@
-import { Stack } from "expo-router";
+import { Stack } from 'expo-router';
 
 export default function RootLayout() {
   return (
-    <Stack>
-      <Stack.Screen
-        name="index"
-        options={{
-          title: "Home",
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="Inventory"
-        options={{
-          title: "Inventory",
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="PosScreen"
-        options={{
-          title: "Point of Sale",
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="Products"
-        options={{
-          title: "Manage Products",
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="Payment"
-        options={{
-          title: "Payment",
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="Credit"
-        options={{
-          title: "Credit",
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="Cash"
-        options={{
-          title: "Cash",
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="reports"
-        options={{
-          title: "Reports",
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen 
-        name="expenses"
-        options={{
-          title: "Expenses",
-          headerShown: false,
-        }}
-      />
+    <Stack
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: '#1E3A8A', // deep blue from your logo
+        },
+        headerTintColor: '#fff', // light yellow text/icon
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          fontSize: 18,
+        },
+      }}
+    >
+      <Stack.Screen name="index" options={{ title: 'Home', headerShown: false }} />
+      <Stack.Screen name="Inventory" options={{ title: '📦 Inventory' }} />
+      <Stack.Screen name="PointOfSales" options={{ title: '🛒 Point of Sale' }} />
+      <Stack.Screen name="Products" options={{ title: '📋 Manage Products' }} />
+      <Stack.Screen name="Payment" options={{ title: '💰 Payment' }} />
+      <Stack.Screen name="Credit" options={{ title: '💳 Credit' }} />
+      <Stack.Screen name="Cash" options={{ title: '💵 Cash' }} />
+      <Stack.Screen name="Reports" options={{ title: '📊 Reports' }} />
+      <Stack.Screen name="Expenses" options={{ title: '💸 Expenses' }} />
+      <Stack.Screen name="Addproduct" options={{ title: '➕ Add Product' }} />
+      <Stack.Screen name="Productlist" options={{ title: '🧾 Product List' }} />
+      <Stack.Screen name="AddCategory" options={{ title: '🗂️ Add Category' }} />
     </Stack>
   );
 }

@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-export default function CreditScreen() {
+export default function Credit() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>🏦 Credit</Text>

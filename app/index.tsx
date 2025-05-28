@@ -11,12 +11,12 @@ export default function HomeScreen() {
         contentFit="contain"
       />
       <Text style={styles.title}>THE POS WIZARD</Text>
-      <Link href="/PosScreen" asChild>
+      <Link href="/PointOfSales" asChild>
         <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>Point of Sale</Text>
+          <Text style={styles.buttonText}>Point of Sales</Text>
         </TouchableOpacity>
       </Link>
-      <Link href="/InventoryScreen" asChild>
+      <Link href="/Inventory" asChild>
         <TouchableOpacity style={styles.button}>
           <Text style={styles.buttonText}>Inventory</Text>
         </TouchableOpacity>

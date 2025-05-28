@@ -2,21 +2,28 @@ import { Link } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-export default function ProductsScreen() {
+export default function Products() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>🧙 Products Management</Text>
-      <Text style={styles.subtitle}>Add or manage your products below</Text>
+      <Text style={styles.subtitle}>Add or manage your products and categories below</Text>
 
       <View style={styles.grid}>
-        <Link href="/add-product" asChild>
+        <Link href="/AddCategory" asChild>
+          <TouchableOpacity style={[styles.button, styles.green]}>
+            <Text style={styles.buttonIcon}>🗂️</Text>
+            <Text style={styles.buttonText}>Add Category</Text>
+          </TouchableOpacity>
+        </Link>
+
+        <Link href="/Addproduct" asChild>
           <TouchableOpacity style={[styles.button, styles.yellow]}>
             <Text style={styles.buttonIcon}>➕</Text>
             <Text style={styles.buttonText}>Add Product</Text>
           </TouchableOpacity>
         </Link>
 
-        <Link href="/product-list" asChild>
+        <Link href="/Productlist" asChild>
           <TouchableOpacity style={[styles.button, styles.blue]}>
             <Text style={styles.buttonIcon}>📦</Text>
             <Text style={styles.buttonText}>All Products</Text>
@@ -32,6 +39,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#EEF2FF',
     padding: 24,
+    justifyContent: 'flex-start',
   },
   title: {
     fontSize: 28,
@@ -44,35 +52,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#4B5563',
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: 40,
   },
   grid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     flexWrap: 'wrap',
+    justifyContent: 'space-between',
     gap: 16,
   },
   button: {
-    width: '48%',
+    width: '48%', // Two buttons per row for now, but flexible for more
     aspectRatio: 1,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
+    elevation: 6, // Increased for better shadow effect
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    marginBottom: 16,
   },
   yellow: {
-    backgroundColor: '#FDE68A',
+    backgroundColor: '#FDE68A', // Add Product: Yellow
   },
   blue: {
-    backgroundColor: '#93C5FD',
+    backgroundColor: '#93C5FD', // All Products: Blue
+  },
+  green: {
+    backgroundColor: '#A7F3D0', // Add Category: Green
   },
   buttonIcon: {
     fontSize: 32,
-    marginBottom: 6,
+    marginBottom: 8,
+    color: '#1E293B',
   },
   buttonText: {
     fontSize: 16,

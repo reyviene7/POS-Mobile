@@ -3,16 +3,26 @@ import { Link } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-const menuItems = [
+// Define the allowed routes
+type AppRoutes = '/Products' | '/Reports' | '/Expenses' | '/Payment' | '/Credit' | '/Cash';
+
+// Define the type for menu items
+interface MenuItem {
+  label: string;
+  icon: string;
+  href: AppRoutes;
+}
+
+const menuItems: MenuItem[] = [
   { label: 'Products', icon: 'box-open', href: '/Products' },
   { label: 'Reports', icon: 'chart-line', href: '/Reports' },
-  { label: 'Expenses', icon: 'money-bill-wave', href: 'Expenses' },
+  { label: 'Expenses', icon: 'money-bill-wave', href: '/Expenses' },
   { label: 'Payment', icon: 'credit-card', href: '/Payment' },
   { label: 'Credit', icon: 'hand-holding-usd', href: '/Credit' },
   { label: 'Cash', icon: 'money-check-alt', href: '/Cash' },
 ];
 
-export default function InventoryScreen() {
+export default function Inventory() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>🧙 Inventory Wizard</Text>

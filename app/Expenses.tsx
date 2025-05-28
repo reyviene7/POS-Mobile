@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-export default function ExpensesScreen() {
+export default function Expenses() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>💸 Expenses</Text>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-export default function CashScreen() {
+export default function Cash() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>💰 Cash</Text>

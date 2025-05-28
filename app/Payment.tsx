@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-export default function PaymentScreen() {
+export default function Payment() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>💳 Payment</Text>
