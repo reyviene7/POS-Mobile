@@ -26,6 +26,7 @@ export default function RootLayout() {
       <Stack.Screen name="Addproduct" options={{ title: '➕ Add Product' }} />
       <Stack.Screen name="Productlist" options={{ title: '🧾 Product List' }} />
       <Stack.Screen name="AddCategory" options={{ title: '🗂️ Add Category' }} />
+      <Stack.Screen name='ConfirmOrder' options={{ title: '✅ Confirm Order' }} />
     </Stack>
   );
 }
