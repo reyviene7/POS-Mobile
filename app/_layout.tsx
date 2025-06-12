@@ -1,29 +1,32 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
-  if (!loaded) {
-    // Async font loading only occurs in development.
-    return null;
-  }
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <Stack
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: '#1E3A8A', // deep blue from your logo
+        },
+        headerTintColor: '#fff', // light yellow text/icon
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          fontSize: 18,
+        },
+      }}
+    >
+      <Stack.Screen name="index" options={{ title: 'Home', headerShown: false }} />
+      <Stack.Screen name="Inventory" options={{ title: '📦 Inventory' }} />
+      <Stack.Screen name="PointOfSales" options={{ title: '🛒 Point of Sale' }} />
+      <Stack.Screen name="Products" options={{ title: '📋 Manage Products' }} />
+      <Stack.Screen name="Payment" options={{ title: '💰 Payment' }} />
+      <Stack.Screen name="Credit" options={{ title: '💳 Credit' }} />
+      <Stack.Screen name="Cash" options={{ title: '💵 Cash' }} />
+      <Stack.Screen name="Reports" options={{ title: '📊 Reports' }} />
+      <Stack.Screen name="Expenses" options={{ title: '💸 Expenses' }} />
+      <Stack.Screen name="Addproduct" options={{ title: '➕ Add Product' }} />
+      <Stack.Screen name="Productlist" options={{ title: '🧾 Product List' }} />
+      <Stack.Screen name="AddCategory" options={{ title: '🗂️ Add Category' }} />
+      <Stack.Screen name='ConfirmOrder' options={{ title: '✅ Confirm Order' }} />
+    </Stack>
   );
 }
