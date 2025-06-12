@@ -4,7 +4,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 // Define the allowed routes
-type AppRoutes = '/Products' | '/Reports' | '/Expenses' | '/Payment' | '/Credit' | '/Cash';
+type AppRoutes = '/Products' | '/Reports' | '/Expenses' | '/Payment' | '/Credit' | '/Cash' | '/StockManager';
 
 // Define the type for menu items
 interface MenuItem {
@@ -20,6 +20,7 @@ const menuItems: MenuItem[] = [
   { label: 'Payment', icon: 'credit-card', href: '/Payment' },
   { label: 'Credit', icon: 'hand-holding-usd', href: '/Credit' },
   { label: 'Cash', icon: 'money-check-alt', href: '/Cash' },
+  { label: 'Stock Manager', icon: 'warehouse', href: '/StockManager' },
 ];
 
 export default function Inventory() {

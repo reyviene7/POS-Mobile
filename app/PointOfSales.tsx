@@ -243,7 +243,7 @@ export default function PointOfSales() {
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => setSelectedProduct(null)}>
-                <Text style={styles.closeText}>X</Text>
+                <Text style={styles.closeText}>Back</Text>
               </TouchableOpacity>
 
               <Text style={styles.modalTitle}>{selectedProduct.name}</Text>
@@ -346,6 +346,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0FDF4',
     borderRadius: 16,
     marginBottom: 16,
+    marginHorizontal: '1%',
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 6,

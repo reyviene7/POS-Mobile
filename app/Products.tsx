@@ -29,6 +29,13 @@ export default function Products() {
             <Text style={styles.buttonText}>All Products</Text>
           </TouchableOpacity>
         </Link>
+
+        <Link href="/Categorylist" asChild>
+          <TouchableOpacity style={[styles.button, styles.blue]}>
+            <Text style={styles.buttonIcon}>📦</Text>
+            <Text style={styles.buttonText}>All Category</Text>
+          </TouchableOpacity>
+        </Link>
       </View>
     </View>
   );
