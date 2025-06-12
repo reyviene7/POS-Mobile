@@ -3,95 +3,54 @@ import React, { useEffect, useState } from 'react';
 import {
   Dimensions,
   FlatList,
-  Image,
   SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import productsData from '../src/scripts/products.json'; // ✅ Adjust path if needed
+import productsData from '../src/scripts/products.json';
 
 // Get the screen width for calculating grid item width
 const screenWidth = Dimensions.get('window').width;
 
-// ✅ Define the item type
-type ProductItem = {
-  id: string;
+// Define the category type
+type CategoryItem = {
   name: string;
-  price: number;
-  size?: string;
-  category: string;
-  quantity: number;
-  image?: string;
+  productCount: number;
+  addons: string[];
 };
 
-export default function ProductList() {
-  const [products, setProducts] = useState<ProductItem[]>([]);
+export default function CategoryList() {
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [listFilterCategory, setListFilterCategory] = useState<string>('All');
   const [gridFilterCategory, setGridFilterCategory] = useState<string>('All');
 
+  // Load categories from products.json
   useEffect(() => {
-    const loadedProducts: ProductItem[] = [];
-
-    productsData.categories.forEach((category) => {
-      category.products.forEach((product: any, index: number) => {
-        const productImage = product.image || null;
-
-        if (product.variants) {
-          product.variants.forEach((variant: any, i: number) => {
-            loadedProducts.push({
-              id: `${category.name}-${index}-${i}`,
-              name: product.name,
-              price: variant.price,
-              size: variant.size,
-              category: category.name,
-              quantity: variant.quantity || 0,
-              image: productImage,
-            });
-          });
-        } else {
-          loadedProducts.push({
-            id: `${category.name}-${index}`,
-            name: product.name,
-            price: product.price,
-            category: category.name,
-            quantity: product.quantity || 0,
-            image: productImage,
-          });
-        }
-      });
-    });
-
-    setProducts(loadedProducts);
+    const loadedCategories: CategoryItem[] = productsData.categories.map((category) => ({
+      name: category.name,
+      productCount: category.products.length,
+      addons: category.addons || [],
+    }));
+    setCategories(loadedCategories);
   }, []);
 
-  const getDefaultImage = (category: string) => {
-    switch (category) {
-      case 'Sandwiches':
-        return require('../assets/images/default-product.jpg');
-      case 'Drinks':
-        return require('../assets/images/default-drink.jpg');
-      default:
-        return require('../assets/images/default-product.jpg');
-    }
-  };
+  // Get unique category names for the filter (though this might be less useful here)
+  const categoryNames = ['All', ...categories.map((item) => item.name)];
 
-  // Get unique categories for the filter
-  const categories = ['All', ...Array.from(new Set(products.map((item) => item.category)))];
-
-  // Filter products for List View based on selected category
-  const filteredListProducts =
+  // Filter categories for List View
+  const filteredListCategories =
     listFilterCategory === 'All'
-      ? products
-      : products.filter((product) => product.category === listFilterCategory);
+      ? categories
+      : categories.filter((category) => category.name === listFilterCategory);
 
-  // Filter products for Grid View based on selected category
-  const filteredGridProducts =
+  // Filter categories for Grid View
+  const filteredGridCategories =
     gridFilterCategory === 'All'
-      ? products
-      : products.filter((product) => product.category === gridFilterCategory);
+      ? categories
+      : categories.filter((category) => category.name === gridFilterCategory);
 
   const renderListView = () => (
     <>
@@ -102,36 +61,25 @@ export default function ProductList() {
           selectedValue={listFilterCategory}
           onValueChange={(itemValue) => setListFilterCategory(itemValue)}
           style={styles.filterPicker}>
-          {categories.map((category) => (
+          {categoryNames.map((category) => (
             <Picker.Item key={category} label={category} value={category} />
           ))}
         </Picker>
       </View>
 
       <FlatList
-        data={filteredListProducts}
-        keyExtractor={(item) => item.id}
+        data={filteredListCategories}
+        keyExtractor={(item) => item.name}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <Image
-              source={
-                item.image
-                  ? { uri: item.image }
-                  : getDefaultImage(item.category)
-              }
-              style={styles.image}
-              resizeMode="cover"
-            />
             <View style={styles.details}>
-              <Text style={styles.productName}>
-                {item.name} {item.size ? `(${item.size})` : ''}
+              <Text style={styles.categoryName}>{item.name}</Text>
+              <Text style={styles.categoryDetails}>
+                Products: {item.productCount}
               </Text>
-              <Text style={styles.productDetails}>
-                ₱{item.price} | Category: {item.category}
-              </Text>
-              <Text style={styles.productQuantity}>
-                Qty: {item.quantity}
+              <Text style={styles.categoryAddons}>
+                Add-ons: {item.addons.length > 0 ? item.addons.join(', ') : 'None'}
               </Text>
             </View>
           </View>
@@ -149,36 +97,27 @@ export default function ProductList() {
           selectedValue={gridFilterCategory}
           onValueChange={(itemValue) => setGridFilterCategory(itemValue)}
           style={styles.filterPicker}>
-          {categories.map((category) => (
+          {categoryNames.map((category) => (
             <Picker.Item key={category} label={category} value={category} />
           ))}
         </Picker>
       </View>
 
       <FlatList
-        data={filteredGridProducts}
-        keyExtractor={(item) => item.id}
-        numColumns={3}
+        data={filteredGridCategories}
+        keyExtractor={(item) => item.name}
+        numColumns={2} // Using 2 columns for categories since they’re fewer
         contentContainerStyle={styles.gridContent}
         renderItem={({ item }) => (
           <View style={styles.gridCard}>
-            <Image
-              source={
-                item.image
-                  ? { uri: item.image }
-                  : getDefaultImage(item.category)
-              }
-              style={styles.gridImage}
-              resizeMode="cover"
-            />
             <View style={styles.gridDetails}>
-              <Text style={styles.productName}>
-                {item.name} {item.size ? `(${item.size})` : ''}
+              <Text style={styles.categoryName}>{item.name}</Text>
+              <Text style={styles.categoryDetails}>
+                Products: {item.productCount}
               </Text>
-              <View style={styles.priceQuantityContainer}>
-                <Text style={styles.productDetails}>₱{item.price}</Text>
-                <Text style={styles.productQuantity}>Qty: {item.quantity}</Text>
-              </View>
+              <Text style={styles.categoryAddons}>
+                Add-ons: {item.addons.length > 0 ? item.addons.join(', ') : 'None'}
+              </Text>
             </View>
           </View>
         )}
@@ -212,7 +151,7 @@ export default function ProductList() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#EEF2FF', // Match ProductList background
     padding: 16,
   },
   viewModeContainer: {
@@ -235,7 +174,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   activeViewMode: {
-    backgroundColor: '#6366F1',
+    backgroundColor: '#6366F1', // Match ProductList active view mode
   },
   viewModeText: {
     fontSize: 16,
@@ -259,7 +198,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: '#1E293B',
-    marginRight: 12,
   },
   filterPicker: {
     flex: 1,
@@ -268,14 +206,13 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 16,
-    paddingHorizontal: 4
+    paddingHorizontal: 4,
   },
   gridContent: {
     paddingBottom: 16,
-    paddingHorizontal: 4,
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: '#fff', // Match ProductList card background
     borderRadius: 12,
     overflow: 'hidden',
     marginBottom: 16,
@@ -287,7 +224,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   gridCard: {
-    width: (screenWidth - 36 - 20) / 3,
+    width: (screenWidth - 36 - 12) / 2, // 2 columns for categories
     backgroundColor: '#fff',
     borderRadius: 12,
     overflow: 'hidden',
@@ -298,16 +235,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  image: {
-    width: 100,
-    height: 100,
-    backgroundColor: '#D1D5DB',
-  },
-  gridImage: {
-    width: '100%',
-    height: 100,
-    backgroundColor: '#D1D5DB',
-  },
   details: {
     flex: 1,
     padding: 12,
@@ -317,23 +244,19 @@ const styles = StyleSheet.create({
     padding: 8,
     alignItems: 'center',
   },
-  priceQuantityContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
+  categoryName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937', // Match ProductList main text
+  },
+  categoryDetails: {
+    fontSize: 12,
+    color: '#6B7280', // Match ProductList secondary text
     marginTop: 4,
   },
-  productName: {
-    fontSize: 14, // Reduced for better fit in 3-column grid
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  productDetails: {
-    fontSize: 12, // Reduced for better fit
-    color: '#6B7280',
-  },
-  productQuantity: {
-    fontSize: 12, // Reduced for better fit
-    color: '#374151',
+  categoryAddons: {
+    fontSize: 12,
+    color: '#374151', // Match ProductList details text
+    marginTop: 4,
   },
 });
