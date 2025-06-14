@@ -9,13 +9,6 @@ export default function Products() {
       <Text style={styles.subtitle}>Add or manage your products and categories below</Text>
 
       <View style={styles.grid}>
-        <Link href="/AddCategory" asChild>
-          <TouchableOpacity style={[styles.button, styles.green]}>
-            <Text style={styles.buttonIcon}>🗂️</Text>
-            <Text style={styles.buttonText}>Add Category</Text>
-          </TouchableOpacity>
-        </Link>
-
         <Link href="/Addproduct" asChild>
           <TouchableOpacity style={[styles.button, styles.yellow]}>
             <Text style={styles.buttonIcon}>➕</Text>
