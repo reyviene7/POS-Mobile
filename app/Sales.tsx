@@ -2,31 +2,26 @@ import { Link } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-export default function Products() {
+export default function Sales() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>🧙 Products Management</Text>
-      <Text style={styles.subtitle}>Add or manage your products and categories below</Text>
+      <Text style={styles.title}>🧙 Sales Management</Text>
+      <Text style={styles.subtitle}>View sales and shift summaries</Text>
 
       <View style={styles.grid}>
-        <Link href="/Addproduct" asChild>
-          <TouchableOpacity style={[styles.button, styles.yellow]}>
-            <Text style={styles.buttonIcon}>➕</Text>
-            <Text style={styles.buttonText}>Add Product</Text>
+        {/* Shift Summary Button */}
+        <Link href="/ShiftSummary" asChild>
+          <TouchableOpacity style={[styles.button, styles.purple]}>
+            <Text style={styles.buttonIcon}>🕒</Text>
+            <Text style={styles.buttonText}>Shift Summary</Text>
           </TouchableOpacity>
         </Link>
 
-        <Link href="/Productlist" asChild>
-          <TouchableOpacity style={[styles.button, styles.blue]}>
-            <Text style={styles.buttonIcon}>📦</Text>
-            <Text style={styles.buttonText}>All Products</Text>
-          </TouchableOpacity>
-        </Link>
-
-        <Link href="/Categorylist" asChild>
-          <TouchableOpacity style={[styles.button, styles.blue]}>
-            <Text style={styles.buttonIcon}>📦</Text>
-            <Text style={styles.buttonText}>All Category</Text>
+        {/* Sales History Button */}
+        <Link href="/SalesHistory" asChild>
+          <TouchableOpacity style={[styles.button, styles.teal]}>
+            <Text style={styles.buttonIcon}>📊</Text>
+            <Text style={styles.buttonText}>Sales History</Text>
           </TouchableOpacity>
         </Link>
       </View>
@@ -61,26 +56,23 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   button: {
-    width: '48%', // Two buttons per row for now, but flexible for more
+    width: '48%',
     aspectRatio: 1,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 6, // Increased for better shadow effect
+    elevation: 6,
     shadowColor: '#000',
     shadowOpacity: 0.15,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
     marginBottom: 16,
   },
-  yellow: {
-    backgroundColor: '#FDE68A', // Add Product: Yellow
+  purple: {
+    backgroundColor: '#DDD6FE', // Light purple
   },
-  blue: {
-    backgroundColor: '#93C5FD', // All Products: Blue
-  },
-  green: {
-    backgroundColor: '#A7F3D0', // Add Category: Green
+  teal: {
+    backgroundColor: '#99F6E4', // Light teal
   },
   buttonIcon: {
     fontSize: 32,

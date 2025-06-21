@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    FlatList,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  FlatList,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import stocksData from '../src/scripts/stocks.json';
 
@@ -66,7 +66,7 @@ export default function StockManager() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>📦 Stock Manager</Text>
+      <Text style={styles.title}>📦 Stock Management</Text>
       <Text style={styles.subtitle}>Manage Ingredient Inventory</Text>
 
       <FlatList

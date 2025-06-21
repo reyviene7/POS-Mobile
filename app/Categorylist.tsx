@@ -1,7 +1,6 @@
-import { Picker } from '@react-native-picker/picker';
-import React, { useEffect, useState } from 'react';
+// screens/CategoryList.tsx
+import React, { useState } from 'react';
 import {
-  Dimensions,
   FlatList,
   SafeAreaView,
   StyleSheet,
@@ -9,12 +8,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import productsData from '../src/scripts/products.json';
+import CategoryModal from '../src/components/CategoryModal';
 
-// Get the screen width for calculating grid item width
-const screenWidth = Dimensions.get('window').width;
-
-// Define the category type
 type CategoryItem = {
   name: string;
   productCount: number;
@@ -22,128 +17,79 @@ type CategoryItem = {
 };
 
 export default function CategoryList() {
-  const [categories, setCategories] = useState<CategoryItem[]>([]);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [listFilterCategory, setListFilterCategory] = useState<string>('All');
-  const [gridFilterCategory, setGridFilterCategory] = useState<string>('All');
+  const [categories, setCategories] = useState<CategoryItem[]>([
+    { name: 'Burgers', productCount: 12, addons: ['Cheese', 'Bacon'] },
+    { name: 'Drinks', productCount: 8, addons: ['Ice', 'Lemon'] },
+  ]);
 
-  // Load categories from products.json
-  useEffect(() => {
-    const loadedCategories: CategoryItem[] = productsData.categories.map((category) => ({
-      name: category.name,
-      productCount: category.products.length,
-      addons: category.addons || [],
-    }));
-    setCategories(loadedCategories);
-  }, []);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
 
-  // Get unique category names for the filter (though this might be less useful here)
-  const categoryNames = ['All', ...categories.map((item) => item.name)];
+  const handleAdd = () => {
+    setEditingCategory(null);
+    setModalVisible(true);
+  };
 
-  // Filter categories for List View
-  const filteredListCategories =
-    listFilterCategory === 'All'
-      ? categories
-      : categories.filter((category) => category.name === listFilterCategory);
+  const handleEdit = (category: CategoryItem) => {
+    setEditingCategory(category);
+    setModalVisible(true);
+  };
 
-  // Filter categories for Grid View
-  const filteredGridCategories =
-    gridFilterCategory === 'All'
-      ? categories
-      : categories.filter((category) => category.name === gridFilterCategory);
+  const handleSaveCategory = (updated: { name: string; addons: string[] }) => {
+    if (editingCategory) {
+      // Edit mode
+      setCategories((prev) =>
+        prev.map((cat) =>
+          cat.name === editingCategory.name
+            ? { ...cat, name: updated.name, addons: updated.addons }
+            : cat
+        )
+      );
+    } else {
+      // Add mode
+      setCategories((prev) => [
+        ...prev,
+        { name: updated.name, addons: updated.addons, productCount: 0 },
+      ]);
+    }
 
-  const renderListView = () => (
-    <>
-      {/* Category Filter for List View */}
-      <View style={styles.filterContainer}>
-        <Text style={styles.filterLabel}>Filter by Category:</Text>
-        <Picker
-          selectedValue={listFilterCategory}
-          onValueChange={(itemValue) => setListFilterCategory(itemValue)}
-          style={styles.filterPicker}>
-          {categoryNames.map((category) => (
-            <Picker.Item key={category} label={category} value={category} />
-          ))}
-        </Picker>
+    setModalVisible(false);
+  };
+
+  const renderItem = ({ item }: { item: CategoryItem }) => (
+    <TouchableOpacity onPress={() => handleEdit(item)}>
+      <View style={styles.card}>
+        <View style={styles.details}>
+          <Text style={styles.categoryName}>{item.name}</Text>
+          <Text style={styles.categoryDetails}>Products: {item.productCount}</Text>
+          <Text style={styles.categoryAddons}>
+            Add-ons: {item.addons.length > 0 ? item.addons.join(', ') : 'None'}
+          </Text>
+        </View>
       </View>
-
-      <FlatList
-        data={filteredListCategories}
-        keyExtractor={(item) => item.name}
-        contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.details}>
-              <Text style={styles.categoryName}>{item.name}</Text>
-              <Text style={styles.categoryDetails}>
-                Products: {item.productCount}
-              </Text>
-              <Text style={styles.categoryAddons}>
-                Add-ons: {item.addons.length > 0 ? item.addons.join(', ') : 'None'}
-              </Text>
-            </View>
-          </View>
-        )}
-      />
-    </>
-  );
-
-  const renderGridView = () => (
-    <>
-      {/* Category Filter for Grid View */}
-      <View style={styles.filterContainer}>
-        <Text style={styles.filterLabel}>Filter by Category:</Text>
-        <Picker
-          selectedValue={gridFilterCategory}
-          onValueChange={(itemValue) => setGridFilterCategory(itemValue)}
-          style={styles.filterPicker}>
-          {categoryNames.map((category) => (
-            <Picker.Item key={category} label={category} value={category} />
-          ))}
-        </Picker>
-      </View>
-
-      <FlatList
-        data={filteredGridCategories}
-        keyExtractor={(item) => item.name}
-        numColumns={2} // Using 2 columns for categories since they’re fewer
-        contentContainerStyle={styles.gridContent}
-        renderItem={({ item }) => (
-          <View style={styles.gridCard}>
-            <View style={styles.gridDetails}>
-              <Text style={styles.categoryName}>{item.name}</Text>
-              <Text style={styles.categoryDetails}>
-                Products: {item.productCount}
-              </Text>
-              <Text style={styles.categoryAddons}>
-                Add-ons: {item.addons.length > 0 ? item.addons.join(', ') : 'None'}
-              </Text>
-            </View>
-          </View>
-        )}
-      />
-    </>
+    </TouchableOpacity>
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* View Mode Selection */}
-      <View style={styles.viewModeContainer}>
-        <TouchableOpacity
-          style={[styles.viewModeButton, viewMode === 'list' && styles.activeViewMode]}
-          onPress={() => setViewMode('list')}>
-          <Text style={styles.viewModeText}>List</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.viewModeButton, viewMode === 'grid' && styles.activeViewMode]}
-          onPress={() => setViewMode('grid')}>
-          <Text style={styles.viewModeText}>Grid</Text>
-        </TouchableOpacity>
-      </View>
+      <Text style={styles.title}>Category List</Text>
+      <FlatList
+        data={categories}
+        keyExtractor={(item, index) => `${item.name}-${index}`}
+        renderItem={renderItem}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      />
 
-      {/* Render Selected View */}
-      {viewMode === 'list' && renderListView()}
-      {viewMode === 'grid' && renderGridView()}
+      <TouchableOpacity style={styles.fab} onPress={handleAdd}>
+        <Text style={styles.fabText}>+ Add Category</Text>
+      </TouchableOpacity>
+
+      <CategoryModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onSave={handleSaveCategory}
+        category={editingCategory}
+      />
     </SafeAreaView>
   );
 }
@@ -151,112 +97,51 @@ export default function CategoryList() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EEF2FF', // Match ProductList background
     padding: 16,
+    backgroundColor: '#F9FAFB',
   },
-  viewModeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
     marginBottom: 16,
-    paddingVertical: 8,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  viewModeButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginHorizontal: 8,
-  },
-  activeViewMode: {
-    backgroundColor: '#6366F1', // Match ProductList active view mode
-  },
-  viewModeText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1E293B',
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    marginBottom: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  filterLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1E293B',
-  },
-  filterPicker: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-  },
-  listContent: {
-    paddingBottom: 16,
-    paddingHorizontal: 4,
-  },
-  gridContent: {
-    paddingBottom: 16,
   },
   card: {
-    backgroundColor: '#fff', // Match ProductList card background
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    marginBottom: 12,
     borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-    flexDirection: 'row',
-  },
-  gridCard: {
-    width: (screenWidth - 36 - 12) / 2, // 2 columns for categories
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    overflow: 'hidden',
-    margin: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
   details: {
-    flex: 1,
-    padding: 12,
-    justifyContent: 'center',
-  },
-  gridDetails: {
-    padding: 8,
-    alignItems: 'center',
+    flexDirection: 'column',
   },
   categoryName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937', // Match ProductList main text
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
   },
   categoryDetails: {
-    fontSize: 12,
-    color: '#6B7280', // Match ProductList secondary text
-    marginTop: 4,
+    fontSize: 14,
+    color: '#6B7280',
   },
   categoryAddons: {
-    fontSize: 12,
-    color: '#374151', // Match ProductList details text
+    fontSize: 14,
+    color: '#9CA3AF',
     marginTop: 4,
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    backgroundColor: '#6366F1',
+    borderRadius: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    elevation: 4,
+  },
+  fabText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
