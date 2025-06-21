@@ -2,14 +2,14 @@ import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
+  Alert,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
 } from 'react-native';
 import productsData from '../scripts/products.json';
 
@@ -127,7 +127,6 @@ export default function ProductModal({ visible, onClose, product }: ProductModal
 
     console.log('Product to be saved:', payload);
 
-    // TODO: Replace with actual API call
     Alert.alert('Product saved!');
     onClose();
   };
@@ -137,6 +136,16 @@ export default function ProductModal({ visible, onClose, product }: ProductModal
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.form}>
+        <Text style={{
+          fontSize: 24,
+          fontWeight: 'bold',
+          textAlign: 'center',
+          marginBottom: 24,
+          color: '#D97706',
+        }}>
+          {product ? 'Edit Product' : 'Add New Product'}
+        </Text>
+
         <Text style={styles.label}>Category</Text>
         <Picker selectedValue={category} onValueChange={setCategory} style={styles.picker}>
           {categoryOptions.map((cat) => (
@@ -190,7 +199,7 @@ export default function ProductModal({ visible, onClose, product }: ProductModal
 
         <Text style={styles.label}>Product Image</Text>
         <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
-          <Text>Select Image</Text>
+          <Text style={{ fontWeight: 'bold', color: '#78350F' }}>📸 Select Image</Text>
         </TouchableOpacity>
         <Image source={{ uri: imageUri || defaultImage }} style={styles.image} />
 
@@ -209,7 +218,7 @@ export default function ProductModal({ visible, onClose, product }: ProductModal
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#FFF8E1', // Warm egg background
     padding: 24,
   },
   form: {
@@ -217,52 +226,64 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '700',
     marginBottom: 6,
-    color: '#4338CA',
+    color: '#CA8A04', // Darker egg yellow
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFBEB',
     paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     marginBottom: 20,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#FCD34D',
+    shadowColor: '#FBBF24',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   picker: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#FACC15',
+    color: '#78350F',
   },
   imagePicker: {
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: '#DDD',
-    borderRadius: 12,
+    backgroundColor: '#FDE68A',
+    borderRadius: 16,
     marginBottom: 16,
     alignItems: 'center',
   },
   image: {
     width: '100%',
     height: 200,
-    borderRadius: 12,
+    borderRadius: 16,
     marginBottom: 20,
     resizeMode: 'cover',
+    borderWidth: 1,
+    borderColor: '#FCD34D',
   },
   saveButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: '#F59E0B',
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
     marginTop: 10,
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   saveButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 1,
   },
 });

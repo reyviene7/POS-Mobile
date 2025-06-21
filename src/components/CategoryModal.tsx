@@ -1,12 +1,11 @@
-// components/CategoryModal.tsx
 import React, { useEffect, useState } from 'react';
 import {
-    Modal,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 type CategoryModalProps = {
@@ -48,6 +47,9 @@ export default function CategoryModal({
             style={styles.input}
           />
 
+          <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>
+            Example: Cheese, Bacon, Egg
+          </Text>
           <TextInput
             placeholder="Add-ons (comma-separated)"
             value={addons}
@@ -77,45 +79,61 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.4)', // Slightly darker
+    padding: 24,
   },
   modalContent: {
-    backgroundColor: '#fff',
-    marginHorizontal: 20,
-    padding: 20,
-    borderRadius: 12,
-    elevation: 5,
+    backgroundColor: '#FFFBEB', // EggShell cream
+    borderRadius: 20,
+    padding: 24,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
   },
   title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#D97706', // Deep yellow-orange
+    textAlign: 'center',
+    marginBottom: 20,
   },
   input: {
+    backgroundColor: '#fff',
+    borderColor: '#FCD34D',
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 12,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    marginBottom: 16,
+    shadowColor: '#FBBF24',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    marginTop: 8,
   },
   button: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginLeft: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 14,
+    elevation: 2,
   },
   cancel: {
-    backgroundColor: '#9CA3AF',
+    backgroundColor: '#E5E7EB', // Light gray
   },
   save: {
-    backgroundColor: '#6366F1',
+    backgroundColor: '#F59E0B', // Vibrant egg yellow
+    marginLeft: 10,
   },
   buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    fontWeight: '700',
+    fontSize: 16,
+    color: '#1F2937',
   },
 });

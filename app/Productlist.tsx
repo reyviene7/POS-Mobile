@@ -1,4 +1,4 @@
-import ProductModal from '@/src/components/ProductModal'; // Add this line
+import ProductModal from '@/src/components/ProductModal';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import React, { useEffect, useState } from 'react';
@@ -6,12 +6,15 @@ import {
   Dimensions,
   FlatList,
   Image,
+  Modal,
   SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
+
+
 import productsData from '../src/scripts/products.json';
 
 const screenWidth = Dimensions.get('window').width;
@@ -182,11 +185,18 @@ export default function ProductList() {
         <Ionicons name="add" size={30} color="#fff" />
       </TouchableOpacity>
 
-      {/* Product Modal */}
-      <ProductModal
+      <Modal
         visible={isModalVisible}
-        onClose={() => setModalVisible(false)}
-      />
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <ProductModal
+          visible={true}
+          onClose={() => setModalVisible(false)}
+          product={selectedProduct} // important if you're editing
+        />
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -194,83 +204,89 @@ export default function ProductList() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#FFFBEB', // EggShell cream background
     padding: 16,
   },
   viewModeContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginBottom: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#FEF3C7',
     borderRadius: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
     elevation: 2,
   },
   viewModeButton: {
     paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
     marginHorizontal: 8,
+    backgroundColor: '#FDE68A',
   },
   activeViewMode: {
-    backgroundColor: '#6366F1',
+    backgroundColor: '#F59E0B',
   },
   viewModeText: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#1E293B',
+    fontWeight: '600',
+    color: '#1F2937',
   },
   filterContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 16,
     paddingHorizontal: 12,
     marginBottom: 16,
     elevation: 2,
   },
   filterLabel: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#1E293B',
+    fontWeight: '600',
+    color: '#78350F',
     marginRight: 12,
   },
   filterPicker: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FEF9C3',
+    color: '#1F2937',
   },
   listContent: {
-    paddingBottom: 80,
+    paddingBottom: 100,
   },
   gridContent: {
-    paddingBottom: 80,
+    paddingBottom: 100,
     paddingHorizontal: 4,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: '#FFF',
+    borderRadius: 20,
     flexDirection: 'row',
     marginBottom: 16,
     overflow: 'hidden',
-    elevation: 2,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
   },
   gridCard: {
-    width: (screenWidth - 32 - 16) / 3,
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    width: (screenWidth - 32 - 24) / 3,
+    backgroundColor: '#FFF',
+    borderRadius: 16,
     margin: 4,
     overflow: 'hidden',
-    elevation: 2,
+    elevation: 3,
   },
   image: {
     width: 100,
     height: 100,
-    backgroundColor: '#D1D5DB',
+    backgroundColor: '#F3F4F6',
   },
   gridImage: {
     width: '100%',
     height: 100,
-    backgroundColor: '#D1D5DB',
+    backgroundColor: '#F3F4F6',
   },
   details: {
     flex: 1,
@@ -289,31 +305,37 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#1F2937',
+    textAlign: 'center',
   },
   productDetails: {
     fontSize: 12,
     color: '#6B7280',
+    marginTop: 2,
+    textAlign: 'center',
   },
   productQuantity: {
     fontSize: 12,
     color: '#374151',
+    marginTop: 2,
+    textAlign: 'center',
   },
   floatingButton: {
     position: 'absolute',
     bottom: 24,
     right: 24,
-    backgroundColor: '#6366F1',
+    backgroundColor: '#F59E0B',
     width: 56,
     height: 56,
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
+    elevation: 6,
     shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
   },
 });
+

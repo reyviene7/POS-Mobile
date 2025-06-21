@@ -1,30 +1,34 @@
 import { Link } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import SalesChart from './SalesChart';
 
 export default function Sales() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>🧙 Sales Management</Text>
-      <Text style={styles.subtitle}>View sales and shift summaries</Text>
+      <Text style={styles.title}>📈 EggCited Sales</Text>
+      <Text style={styles.subtitle}>Manage your daily egg drops</Text>
+
+      <SalesChart />
 
       <View style={styles.grid}>
-        {/* Shift Summary Button */}
+        {/* Shift Summary */}
         <Link href="/ShiftSummary" asChild>
-          <TouchableOpacity style={[styles.button, styles.purple]}>
-            <Text style={styles.buttonIcon}>🕒</Text>
-            <Text style={styles.buttonText}>Shift Summary</Text>
+          <TouchableOpacity style={[styles.card, styles.indigo]}>
+            <Text style={styles.icon}>🕒</Text>
+            <Text style={styles.label}>Shift Summary</Text>
           </TouchableOpacity>
         </Link>
 
-        {/* Sales History Button */}
+        {/* Sales History */}
         <Link href="/SalesHistory" asChild>
-          <TouchableOpacity style={[styles.button, styles.teal]}>
-            <Text style={styles.buttonIcon}>📊</Text>
-            <Text style={styles.buttonText}>Sales History</Text>
+          <TouchableOpacity style={[styles.card, styles.yellow]}>
+            <Text style={styles.icon}>📊</Text>
+            <Text style={styles.label}>Sales History</Text>
           </TouchableOpacity>
         </Link>
       </View>
+      
     </View>
   );
 }
@@ -32,57 +36,57 @@ export default function Sales() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#FFFBEB',
     padding: 24,
-    justifyContent: 'flex-start',
+    paddingTop: 48,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#4338CA',
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#B45309',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#4B5563',
+    fontSize: 15,
+    color: '#6B7280',
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: 32,
   },
   grid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
     gap: 16,
+    marginTop: 16,
   },
-  button: {
-    width: '48%',
+  card: {
+    flex: 1,
     aspectRatio: 1,
-    borderRadius: 20,
-    justifyContent: 'center',
+    borderRadius: 16,
     alignItems: 'center',
-    elevation: 6,
+    justifyContent: 'center',
+    marginHorizontal: 4,
     shadowColor: '#000',
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.1,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
-    marginBottom: 16,
+    elevation: 3,
   },
-  purple: {
-    backgroundColor: '#DDD6FE', // Light purple
+  indigo: {
+    backgroundColor: '#C7D2FE', // Light indigo
   },
-  teal: {
-    backgroundColor: '#99F6E4', // Light teal
+  yellow: {
+    backgroundColor: '#FDE68A', // Warm yellow
   },
-  buttonIcon: {
-    fontSize: 32,
-    marginBottom: 8,
-    color: '#1E293B',
+  icon: {
+    fontSize: 36,
+    marginBottom: 10,
+    color: '#1F2937',
   },
-  buttonText: {
+  label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
+    color: '#1F2937',
     textAlign: 'center',
   },
 });

@@ -1,7 +1,12 @@
-// components/OrderDetailsModal.tsx
-
 import React from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 interface Item {
   name: string;
@@ -29,21 +34,27 @@ const OrderDetailsModal: React.FC<Props> = ({ visible, onClose, order }) => {
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
         <View style={styles.modal}>
-          <Text style={styles.header}>Order Details</Text>
-          <Text style={styles.subHeader}>Order ID: {order.orderId}</Text>
+          <Text style={styles.header}>🍳 Order Summary</Text>
+          <Text style={styles.subHeader}>Order #{order.orderId}</Text>
           <Text style={styles.timestamp}>
             {new Date(order.timestamp).toLocaleString()}
           </Text>
 
           <ScrollView style={styles.itemsContainer}>
             {order.items.map((item, index) => (
-              <Text key={index} style={styles.item}>
-                {item.name} x{item.quantity} - ₱{item.price}
-              </Text>
+              <View key={index} style={styles.itemRow}>
+                <Text style={styles.itemName}>{item.name}</Text>
+                <Text style={styles.itemInfo}>
+                  x{item.quantity} – ₱{item.price.toFixed(2)}
+                </Text>
+              </View>
             ))}
           </ScrollView>
 
-          <Text style={styles.total}>Total: ₱{order.total}</Text>
+          <View style={styles.totalContainer}>
+            <Text style={styles.totalLabel}>Total:</Text>
+            <Text style={styles.totalAmount}>₱{order.total.toFixed(2)}</Text>
+          </View>
 
           <Pressable onPress={onClose} style={styles.closeButton}>
             <Text style={styles.closeButtonText}>Close</Text>
@@ -64,50 +75,78 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modal: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
+    backgroundColor: "#FFFBEB",
+    borderRadius: 16,
     padding: 20,
     maxHeight: "80%",
+    elevation: 6,
   },
   header: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "bold",
+    color: "#B45309",
+    textAlign: "center",
     marginBottom: 6,
   },
   subHeader: {
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "600",
+    color: "#92400E",
+    textAlign: "center",
   },
   timestamp: {
     fontSize: 14,
     color: "#6B7280",
-    marginBottom: 12,
+    textAlign: "center",
+    marginBottom: 16,
   },
   itemsContainer: {
     marginBottom: 12,
-    maxHeight: 200,
+    maxHeight: 220,
   },
-  item: {
+  itemRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  itemName: {
     fontSize: 14,
-    marginBottom: 4,
     color: "#374151",
+    fontWeight: "500",
   },
-  total: {
-    fontWeight: "bold",
+  itemInfo: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  totalContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    borderTopWidth: 1,
+    borderColor: "#E5E7EB",
+    paddingTop: 12,
+    marginTop: 8,
+  },
+  totalLabel: {
     fontSize: 16,
-    marginTop: 10,
+    fontWeight: "600",
+    color: "#1F2937",
+  },
+  totalAmount: {
+    fontSize: 16,
+    fontWeight: "700",
     color: "#10B981",
   },
   closeButton: {
-    marginTop: 16,
+    marginTop: 20,
     alignSelf: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    backgroundColor: "#3B82F6",
-    borderRadius: 6,
+    backgroundColor: "#4F46E5",
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    borderRadius: 8,
   },
   closeButtonText: {
     color: "#fff",
-    fontWeight: "bold",
+    fontWeight: "600",
+    fontSize: 14,
   },
 });

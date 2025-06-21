@@ -1,4 +1,3 @@
-// screens/CategoryList.tsx
 import React, { useState } from 'react';
 import {
   FlatList,
@@ -18,8 +17,8 @@ type CategoryItem = {
 
 export default function CategoryList() {
   const [categories, setCategories] = useState<CategoryItem[]>([
-    { name: 'Burgers', productCount: 12, addons: ['Cheese', 'Bacon'] },
-    { name: 'Drinks', productCount: 8, addons: ['Ice', 'Lemon'] },
+    { name: 'Sandwiches', productCount: 12, addons: ['Cheese', 'Extra Sauce', 'Lettuce'] },
+    { name: 'Drinks', productCount: 8, addons: ['Milktea Pearl', 'Nata De Coco'] },
   ]);
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -98,19 +97,25 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FFFBEB', // Eggshell cream
   },
   title: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#78350F', // deep brown-orange
     marginBottom: 16,
+    textAlign: 'center',
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FEF9C3', // pale yellow
     padding: 16,
     marginBottom: 12,
-    borderRadius: 12,
-    elevation: 2,
+    borderRadius: 16,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
   },
   details: {
     flexDirection: 'column',
@@ -118,30 +123,36 @@ const styles = StyleSheet.create({
   categoryName: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#1F2937',
     marginBottom: 4,
   },
   categoryDetails: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#4B5563',
   },
   categoryAddons: {
-    fontSize: 14,
-    color: '#9CA3AF',
+    fontSize: 13,
+    color: '#6B7280',
     marginTop: 4,
   },
   fab: {
     position: 'absolute',
     right: 20,
-    bottom: 20,
-    backgroundColor: '#6366F1',
-    borderRadius: 24,
+    bottom: 24,
+    backgroundColor: '#F59E0B', // golden egg
+    borderRadius: 30,
     paddingVertical: 12,
-    paddingHorizontal: 20,
-    elevation: 4,
+    paddingHorizontal: 24,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
   },
   fabText: {
-    color: '#fff',
-    fontSize: 14,
+    color: '#FFF',
+    fontSize: 15,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
 });

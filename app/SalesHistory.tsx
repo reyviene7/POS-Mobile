@@ -1,5 +1,3 @@
-// screens/SalesHistory.tsx
-
 import React, { useEffect, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import OrderDetailsModal from "../src/components/OrderDetailsModal";
@@ -39,20 +37,23 @@ export default function SalesHistory() {
 
   const renderItem = ({ item }: { item: Sale }) => (
     <Pressable onPress={() => openDetails(item)} style={styles.card}>
-      <Text style={styles.orderId}>Order: {item.orderId}</Text>
+      <View style={styles.cardHeader}>
+        <Text style={styles.orderId}>#{item.orderId}</Text>
+        <Text style={styles.total}>₱{item.total.toFixed(2)}</Text>
+      </View>
       <Text style={styles.timestamp}>
-        {new Date(item.timestamp).toLocaleTimeString()}
+        {new Date(item.timestamp).toLocaleString()}
       </Text>
-      <Text style={styles.total}>₱{item.total}</Text>
     </Pressable>
   );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Sales History</Text>
+      <Text style={styles.title}>📊 Sales History</Text>
+      <Text style={styles.subtitle}>Every transaction tells a story</Text>
 
       <View style={styles.summaryBox}>
-        <Text style={styles.summaryText}>Total Earned: </Text>
+        <Text style={styles.summaryText}>Total Sales:</Text>
         <Text style={styles.summaryAmount}>₱{totalSales.toFixed(2)}</Text>
       </View>
 
@@ -60,6 +61,9 @@ export default function SalesHistory() {
         data={sales}
         keyExtractor={(item) => item.orderId}
         renderItem={renderItem}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No sales records available.</Text>
+        }
       />
 
       <OrderDetailsModal
@@ -70,30 +74,39 @@ export default function SalesHistory() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#FFFBEB", // soft warm yellow
     padding: 16,
   },
   title: {
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: "bold",
-    marginBottom: 12,
-    color: "#111827",
+    color: "#B45309", // warm orange-brown
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  
+  subtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    color: '#6B7280',
+    marginBottom: 16,
   },
   summaryBox: {
     flexDirection: "row",
     justifyContent: "space-between",
-    backgroundColor: "#E5E7EB",
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 12,
+    backgroundColor: "#FEF3C7", // lighter egg yellow
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 20,
+    elevation: 2,
   },
   summaryText: {
     fontSize: 16,
-    color: "#374151",
+    fontWeight: "500",
+    color: "#92400E",
   },
   summaryAmount: {
     fontSize: 16,
@@ -101,28 +114,39 @@ const styles = StyleSheet.create({
     color: "#10B981",
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     padding: 14,
-    borderRadius: 10,
-    marginHorizontal: 4,
-    marginBottom: 10,
-    elevation: 2,
+    borderRadius: 12,
+    marginBottom: 12,
+    elevation: 3,
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 4,
   },
   orderId: {
     fontSize: 16,
     fontWeight: "600",
     color: "#1F2937",
   },
+  total: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#16A34A",
+  },
   timestamp: {
     fontSize: 14,
     color: "#6B7280",
   },
-  total: {
-    marginTop: 4,
-    fontWeight: "bold",
-    color: "#059669",
+  emptyText: {
+    marginTop: 40,
+    textAlign: "center",
+    color: "#9CA3AF",
+    fontSize: 16,
   },
 });
