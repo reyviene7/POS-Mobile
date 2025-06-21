@@ -1,21 +1,21 @@
+import ProductModal from '@/src/components/ProductModal'; // Add this line
+import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import React, { useEffect, useState } from 'react';
 import {
-    Dimensions,
-    FlatList,
-    Image,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  FlatList,
+  Image,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import productsData from '../src/scripts/products.json'; // ✅ Adjust path if needed
+import productsData from '../src/scripts/products.json';
 
-// Get the screen width for calculating grid item width
 const screenWidth = Dimensions.get('window').width;
 
-// ✅ Define the item type
 type ProductItem = {
   id: string;
   name: string;
@@ -29,8 +29,9 @@ type ProductItem = {
 export default function ProductList() {
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [listFilterCategory, setListFilterCategory] = useState<string>('All');
-  const [gridFilterCategory, setGridFilterCategory] = useState<string>('All');
+  const [filterCategory, setFilterCategory] = useState<string>('All');
+  const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(null);
+  const [isModalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     const loadedProducts: ProductItem[] = [];
@@ -69,8 +70,6 @@ export default function ProductList() {
 
   const getDefaultImage = (category: string) => {
     switch (category) {
-      case 'Sandwiches':
-        return require('../assets/images/default-product.jpg');
       case 'Drinks':
         return require('../assets/images/default-drink.jpg');
       default:
@@ -78,117 +77,68 @@ export default function ProductList() {
     }
   };
 
-  // Get unique categories for the filter
   const categories = ['All', ...Array.from(new Set(products.map((item) => item.category)))];
 
-  // Filter products for List View based on selected category
-  const filteredListProducts =
-    listFilterCategory === 'All'
+  const filteredProducts =
+    filterCategory === 'All'
       ? products
-      : products.filter((product) => product.category === listFilterCategory);
+      : products.filter((product) => product.category === filterCategory);
 
-  // Filter products for Grid View based on selected category
-  const filteredGridProducts =
-    gridFilterCategory === 'All'
-      ? products
-      : products.filter((product) => product.category === gridFilterCategory);
+  const handleEditProduct = (item: ProductItem) => {
+    setSelectedProduct(item);
+    setModalVisible(true);
+  };
 
-  const renderListView = () => (
-    <>
-      {/* Category Filter for List View */}
-      <View style={styles.filterContainer}>
-        <Text style={styles.filterLabel}>Filter by Category:</Text>
-        <Picker
-          selectedValue={listFilterCategory}
-          onValueChange={(itemValue) => setListFilterCategory(itemValue)}
-          style={styles.filterPicker}>
-          {categories.map((category) => (
-            <Picker.Item key={category} label={category} value={category} />
-          ))}
-        </Picker>
-      </View>
+  const handleAddProduct = () => {
+    setSelectedProduct(null);
+    setModalVisible(true);
+  };
 
-      <FlatList
-        data={filteredListProducts}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Image
-              source={
-                item.image
-                  ? { uri: item.image }
-                  : getDefaultImage(item.category)
-              }
-              style={styles.image}
-              resizeMode="cover"
-            />
-            <View style={styles.details}>
-              <Text style={styles.productName}>
-                {item.name} {item.size ? `(${item.size})` : ''}
-              </Text>
-              <Text style={styles.productDetails}>
-                ₱{item.price} | Category: {item.category}
-              </Text>
-              <Text style={styles.productQuantity}>
-                Qty: {item.quantity}
-              </Text>
-            </View>
+  const renderProductItem = ({ item }: { item: ProductItem }) => {
+    if (viewMode === 'list') {
+      return (
+        <TouchableOpacity style={styles.card} onPress={() => handleEditProduct(item)}>
+          <Image
+            source={item.image ? { uri: item.image } : getDefaultImage(item.category)}
+            style={styles.image}
+            resizeMode="cover"
+          />
+          <View style={styles.details}>
+            <Text style={styles.productName}>
+              {item.name} {item.size ? `(${item.size})` : ''}
+            </Text>
+            <Text style={styles.productDetails}>
+              ₱{item.price} | Category: {item.category}
+            </Text>
+            <Text style={styles.productQuantity}>Qty: {item.quantity}</Text>
           </View>
-        )}
-      />
-    </>
-  );
+        </TouchableOpacity>
+      );
+    }
 
-  const renderGridView = () => (
-    <>
-      {/* Category Filter for Grid View */}
-      <View style={styles.filterContainer}>
-        <Text style={styles.filterLabel}>Filter by Category:</Text>
-        <Picker
-          selectedValue={gridFilterCategory}
-          onValueChange={(itemValue) => setGridFilterCategory(itemValue)}
-          style={styles.filterPicker}>
-          {categories.map((category) => (
-            <Picker.Item key={category} label={category} value={category} />
-          ))}
-        </Picker>
-      </View>
-
-      <FlatList
-        data={filteredGridProducts}
-        keyExtractor={(item) => item.id}
-        numColumns={3}
-        contentContainerStyle={styles.gridContent}
-        renderItem={({ item }) => (
-          <View style={styles.gridCard}>
-            <Image
-              source={
-                item.image
-                  ? { uri: item.image }
-                  : getDefaultImage(item.category)
-              }
-              style={styles.gridImage}
-              resizeMode="cover"
-            />
-            <View style={styles.gridDetails}>
-              <Text style={styles.productName}>
-                {item.name} {item.size ? `(${item.size})` : ''}
-              </Text>
-              <View style={styles.priceQuantityContainer}>
-                <Text style={styles.productDetails}>₱{item.price}</Text>
-                <Text style={styles.productQuantity}>Qty: {item.quantity}</Text>
-              </View>
-            </View>
+    return (
+      <TouchableOpacity style={styles.gridCard} onPress={() => handleEditProduct(item)}>
+        <Image
+          source={item.image ? { uri: item.image } : getDefaultImage(item.category)}
+          style={styles.gridImage}
+          resizeMode="cover"
+        />
+        <View style={styles.gridDetails}>
+          <Text style={styles.productName}>
+            {item.name} {item.size ? `(${item.size})` : ''}
+          </Text>
+          <View style={styles.priceQuantityContainer}>
+            <Text style={styles.productDetails}>₱{item.price}</Text>
+            <Text style={styles.productQuantity}>Qty: {item.quantity}</Text>
           </View>
-        )}
-      />
-    </>
-  );
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* View Mode Selection */}
+      {/* Toggle View */}
       <View style={styles.viewModeContainer}>
         <TouchableOpacity
           style={[styles.viewModeButton, viewMode === 'list' && styles.activeViewMode]}
@@ -202,9 +152,41 @@ export default function ProductList() {
         </TouchableOpacity>
       </View>
 
-      {/* Render Selected View */}
-      {viewMode === 'list' && renderListView()}
-      {viewMode === 'grid' && renderGridView()}
+      {/* Filter Picker */}
+      <View style={styles.filterContainer}>
+        <Text style={styles.filterLabel}>Filter by Category:</Text>
+        <Picker
+          selectedValue={filterCategory}
+          onValueChange={(value) => setFilterCategory(value)}
+          style={styles.filterPicker}>
+          {categories.map((cat) => (
+            <Picker.Item key={cat} label={cat} value={cat} />
+          ))}
+        </Picker>
+      </View>
+
+      {/* List/Grid View */}
+      <FlatList
+        data={filteredProducts}
+        keyExtractor={(item) => item.id}
+        key={viewMode}
+        numColumns={viewMode === 'grid' ? 3 : 1}
+        contentContainerStyle={
+          viewMode === 'grid' ? styles.gridContent : styles.listContent
+        }
+        renderItem={renderProductItem}
+      />
+
+      {/* Floating Add Button */}
+      <TouchableOpacity style={styles.floatingButton} onPress={handleAddProduct}>
+        <Ionicons name="add" size={30} color="#fff" />
+      </TouchableOpacity>
+
+      {/* Product Modal */}
+      <ProductModal
+        visible={isModalVisible}
+        onClose={() => setModalVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -219,14 +201,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     marginBottom: 16,
-    paddingVertical: 8,
     backgroundColor: '#fff',
     borderRadius: 12,
+    paddingVertical: 8,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
   },
   viewModeButton: {
     paddingVertical: 8,
@@ -250,10 +228,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 16,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
   },
   filterLabel: {
     fontSize: 16,
@@ -264,37 +238,28 @@ const styles = StyleSheet.create({
   filterPicker: {
     flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 8,
   },
   listContent: {
-    paddingBottom: 16,
+    paddingBottom: 80,
   },
   gridContent: {
-    paddingBottom: 16,
+    paddingBottom: 80,
     paddingHorizontal: 4,
   },
   card: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
     flexDirection: 'row',
+    marginBottom: 16,
+    overflow: 'hidden',
+    elevation: 2,
   },
   gridCard: {
     width: (screenWidth - 32 - 16) / 3,
     backgroundColor: '#fff',
     borderRadius: 12,
-    overflow: 'hidden',
     margin: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    overflow: 'hidden',
     elevation: 2,
   },
   image: {
@@ -323,16 +288,32 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   productName: {
-    fontSize: 14, // Reduced for better fit in 3-column grid
+    fontSize: 14,
     fontWeight: '600',
     color: '#1F2937',
   },
   productDetails: {
-    fontSize: 12, // Reduced for better fit
+    fontSize: 12,
     color: '#6B7280',
   },
   productQuantity: {
-    fontSize: 12, // Reduced for better fit
+    fontSize: 12,
     color: '#374151',
+  },
+  floatingButton: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    backgroundColor: '#6366F1',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
   },
 });
