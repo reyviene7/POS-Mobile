@@ -1,13 +1,13 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 export default function ConfirmOrder() {
@@ -43,8 +43,9 @@ export default function ConfirmOrder() {
   const { subtotal, grandTotal } = calculateTotals();
 
   const handleConfirm = () => {
-    // Handle confirmation logic (e.g., save order, navigate back)
-    router.back();
+    router.push({
+      pathname: '/PaymentOption',
+    });
   };
 
   const handleAdjustQuantity = (index, change) => {
@@ -169,9 +170,9 @@ export default function ConfirmOrder() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EEF2FF', // Match PointOfSales background
+    backgroundColor: '#FFF7ED', // Light warm eggy background
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 16,
   },
   scrollView: {
     flex: 1,
@@ -179,123 +180,133 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 12,
+    alignItems: 'center',
   },
   storeName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937', // Match dark text
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#D97706', // Golden yellow-orange
   },
   receiptNo: {
     fontSize: 14,
-    color: '#6B7280', // Match secondary text
+    color: '#A16207',
+    fontWeight: '500',
   },
   productRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#E5E7EB', // Match secondary background
+    backgroundColor: '#FEF3C7', // Soft yellow
     paddingVertical: 8,
     paddingHorizontal: 10,
-    borderRadius: 8,
+    borderRadius: 10,
     marginBottom: 10,
   },
   productHeader: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#374151', // Slightly lighter text for headers
+    fontWeight: '700',
+    color: '#78350F',
   },
   productItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB', // Match secondary background
+    borderBottomColor: '#FDE68A',
   },
   productName: {
     flex: 1,
     fontSize: 14,
-    color: '#1F2937', // Match dark text
+    color: '#7C2D12',
+    fontWeight: '600',
   },
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   quantityButton: {
-    padding: 5,
-    backgroundColor: '#4F46E5', // Match primary button color
-    borderRadius: 4,
+    padding: 6,
+    backgroundColor: '#F59E0B', // Sunny yellow
+    borderRadius: 8,
   },
   quantityText: {
     fontSize: 16,
     color: 'white',
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   quantityValue: {
     fontSize: 14,
-    color: '#1F2937', // Match dark text
+    color: '#7C2D12',
     marginHorizontal: 8,
+    fontWeight: '600',
   },
   productPrice: {
     fontSize: 14,
-    color: '#1F2937', // Match dark text
+    color: '#78350F',
   },
   subtotal: {
     fontSize: 14,
-    color: '#EF4444', // Match accent color for subtotal
+    color: '#B91C1C',
+    fontWeight: '600',
   },
   emptyCartText: {
     fontSize: 14,
-    color: '#6B7280', // Match secondary text
+    color: '#9CA3AF',
     textAlign: 'center',
-    marginVertical: 10,
+    marginVertical: 12,
   },
   totalContainer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginVertical: 10,
+    marginTop: 10,
+    marginBottom: 20,
   },
   totalLabel: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937', // Match dark text
+    fontWeight: '700',
+    color: '#7C2D12',
     marginRight: 10,
   },
   totalValue: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937', // Match dark text
+    fontWeight: '700',
+    color: '#7C2D12',
   },
   actionButtons: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginVertical: 10,
+    gap: 8,
+    marginBottom: 20,
   },
   actionButton: {
-    backgroundColor: '#4F46E5', // Match primary button color
-    padding: 10,
-    borderRadius: 8,
+    backgroundColor: '#FCD34D',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
     alignItems: 'center',
-    flex: 1,
+    flexGrow: 1,
     marginHorizontal: 2,
+    elevation: 2,
   },
   actionButtonText: {
-    color: 'white',
+    color: '#78350F',
     fontSize: 12,
     fontWeight: '600',
   },
   detailsToggle: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#4F46E5', // Match primary button color
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 10,
+    backgroundColor: '#F59E0B',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12,
   },
   detailsToggleText: {
     color: 'white',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   detailsToggleArrow: {
     color: 'white',
@@ -306,23 +317,25 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 10,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     fontSize: 14,
-    color: '#1F2937', // Match dark text
-    elevation: 2,
+    marginBottom: 12,
+    color: '#1F2937',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
   },
   confirmButton: {
-    backgroundColor: '#4F46E5', // Match primary button color (replacing pink)
-    paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: '#EF4444', // Soft red
+    paddingVertical: 14,
+    borderRadius: 14,
     alignItems: 'center',
-    marginTop: 20,
+    elevation: 3,
   },
   confirmText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

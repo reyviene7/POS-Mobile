@@ -1,7 +1,7 @@
 import { Link } from 'expo-router'; // Using expo-router for navigation
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
-  Image,
+  Animated, Image,
   Modal,
   Pressable,
   SafeAreaView,
@@ -9,7 +9,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 
 import rawProductsData from '../src/scripts/products.json';
@@ -55,6 +55,14 @@ export default function PointOfSales() {
   const [quantity, setQuantity] = useState(1);
   const [addonQuantities, setAddonQuantities] = useState<{ [key: string]: number }>({});
   const [cart, setCart] = useState<CartItem[]>([]); // Track cart items
+  const [showScrollPrompt, setShowScrollPrompt] = useState(true);
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const scrollPromptOpacity = scrollY.interpolate({
+    inputRange: [0, 30],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
 
   const flattenedProducts = productsData.categories.flatMap(category => {
     return category.products.flatMap(product => {
@@ -178,7 +186,14 @@ export default function PointOfSales() {
         </ScrollView>
       </View>
 
-      <ScrollView contentContainerStyle={styles.grid}>
+      <Animated.ScrollView
+        contentContainerStyle={[styles.grid, { paddingBottom: 100 }]} // Add padding here
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        >
         {filteredProducts.map((p, index) => (
           <TouchableOpacity
             key={index}
@@ -204,12 +219,14 @@ export default function PointOfSales() {
             </View>
           </TouchableOpacity>
         ))}
-        <View style={styles.scrollPrompt}>
+      </Animated.ScrollView>
+
+      {filteredProducts.length > 0 && (
+        <Animated.View style={[styles.scrollPrompt, { opacity: scrollPromptOpacity }]}>
           <Text style={styles.scrollText}>Scroll down to see more items</Text>
           <Text style={styles.scrollArrow}>↓</Text>
-        </View>
-      </ScrollView>
-
+        </Animated.View>
+      )}
       <View style={styles.previewContainer}>
         <Link
           href={{
@@ -308,6 +325,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEF2FF',
     paddingHorizontal: 16,
     paddingTop: 12,
+    position: 'relative'
   },
   filterRow: {
     height: 48,
@@ -318,14 +336,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   filterButton: {
-    backgroundColor: '#E5E7EB',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginRight: 8,
+  backgroundColor: '#FEF9C3', // pale yellow
+  paddingVertical: 8,
+  paddingHorizontal: 16,
+  borderRadius: 20,
+  marginRight: 8,
   },
   activeFilterButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#F59E0B', // egg yolk orange
   },
   filterText: {
     fontSize: 14,
@@ -408,7 +426,7 @@ const styles = StyleSheet.create({
   },
   closeText: {
     fontSize: 18,
-    color: '#4F46E5',
+    color: '#FBBF24',
     fontWeight: '600',
   },
   modalTitle: {
@@ -430,7 +448,7 @@ const styles = StyleSheet.create({
   qtyBtn: {
     fontSize: 24,
     paddingHorizontal: 16,
-    color: '#4F46E5',
+    color: '#FBBF24',
   },
   quantityText: {
     fontSize: 16,
@@ -454,17 +472,17 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   addonItem: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 16,
-    marginRight: 6,
+  paddingVertical: 6,
+  paddingHorizontal: 12,
+  backgroundColor: '#FEF3C7',
+  borderRadius: 16,
   },
   addonItemActive: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#F59E0B',
   },
   addonText: {
-    color: 'white',
+    color: '#1F2937',
+    fontWeight: '600',
   },
   addonQuantityRow: {
     flexDirection: 'row',
@@ -487,15 +505,16 @@ const styles = StyleSheet.create({
     color: '#4F46E5',
   },
   confirmButton: {
-    marginTop: 12,
-    backgroundColor: '#4F46E5',
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
+  marginTop: 12,
+  backgroundColor: '#F59E0B',
+  paddingVertical: 10,
+  borderRadius: 10,
+  alignItems: 'center',
   },
   confirmText: {
-    color: 'white',
-    fontWeight: '600',
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   previewContainer: {
     flexDirection: 'row',
@@ -512,16 +531,15 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   reviewButton: {
-    backgroundColor: '#4F46E5',
-    marginLeft: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+  backgroundColor: '#FBBF24', // golden yellow
+  paddingVertical: 10,
+  paddingHorizontal: 20,
+  borderRadius: 12,
   },
   reviewText: {
-    color: 'white',
+    color: '#fff',
+    fontWeight: 'bold',
     fontSize: 14,
-    fontWeight: '600',
   },
   totalSection: {
     flex: 1,
@@ -554,18 +572,28 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   scrollPrompt: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginVertical: 10,
+  position: 'absolute',
+  bottom: 90, // Adjust as needed to float above footer/cart bar
+  left: 0,
+  right: 0,
+  flexDirection: 'row',
+  justifyContent: 'center',
+  alignItems: 'center',
+  paddingVertical: 8,
+  backgroundColor: 'rgba(255, 255, 255, 0.85)', // light background for visibility
+  borderRadius: 20,
+  marginHorizontal: 60,
+  zIndex: 10,
+  elevation: 3,
   },
   scrollText: {
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: '500',
     color: '#6B7280',
   },
   scrollArrow: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginLeft: 5,
+    fontSize: 14,
+    marginLeft: 6,
+    color: '#4B5563',
   },
 });

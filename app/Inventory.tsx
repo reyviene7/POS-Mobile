@@ -3,10 +3,16 @@ import { Link } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-// Define the allowed routes
-type AppRoutes = '/Products' | '/Reports' | '/Expenses' | '/Payment' | '/Credit' | '/Cash' | '/StockManager' | '/Sales';
+type AppRoutes =
+  | '/Products'
+  | '/Reports'
+  | '/Expenses'
+  | '/Payment'
+  | '/Credit'
+  | '/Cash'
+  | '/StockManager'
+  | '/Sales';
 
-// Define the type for menu items
 interface MenuItem {
   label: string;
   icon: string;
@@ -27,12 +33,13 @@ const menuItems: MenuItem[] = [
 export default function Inventory() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>🧙 Inventory Wizard</Text>
+      <Text style={styles.title}>🍳 EggCited Dashboard</Text>
+      <Text style={styles.subtitle}>Manage your sandwich empire, one tap at a time.</Text>
       <View style={styles.grid}>
         {menuItems.map((item) => (
           <Link key={item.label} href={item.href} asChild>
             <TouchableOpacity style={styles.gridItem}>
-              <FontAwesome5 name={item.icon} size={32} color="#ffffff" />
+              <FontAwesome5 name={item.icon} size={30} color="#fff" />
               <Text style={styles.gridText}>{item.label}</Text>
             </TouchableOpacity>
           </Link>
@@ -41,20 +48,25 @@ export default function Inventory() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#FFFDEB', // soft yellow background
     paddingHorizontal: 16,
-    paddingTop: 40,
+    paddingTop: 50,
   },
   title: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: 'bold',
     textAlign: 'center',
+    marginBottom: 6,
+    color: '#F59E0B', // egg yolk orange
+  },
+  subtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#374151',
     marginBottom: 24,
-    color: '#4338CA',
   },
   grid: {
     flexDirection: 'row',
@@ -62,23 +74,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   gridItem: {
-    backgroundColor: '#6366F1',
+    backgroundColor: '#FBBF24', // golden egg tone
     width: '48%',
     aspectRatio: 1,
-    borderRadius: 16,
+    borderRadius: 18,
     marginBottom: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
   },
   gridText: {
-    color: '#ffffff',
+    color: '#fff',
     fontSize: 16,
-    marginTop: 8,
     fontWeight: '600',
+    marginTop: 8,
   },
 });

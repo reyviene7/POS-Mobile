@@ -5,9 +5,9 @@ export default function RootLayout() {
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#1E3A8A', // deep blue from your logo
+          backgroundColor: '#FCD34D', // deep blue from your logo
         },
-        headerTintColor: '#fff', // light yellow text/icon
+        headerTintColor: '#1F2937', // light yellow text/icon
         headerTitleStyle: {
           fontWeight: 'bold',
           fontSize: 18,
@@ -23,7 +23,6 @@ export default function RootLayout() {
       <Stack.Screen name="Cash" options={{ title: '💵 Cash' }} />
       <Stack.Screen name="Reports" options={{ title: '📊 Reports' }} />
       <Stack.Screen name="Expenses" options={{ title: '💸 Expenses' }} />
-      <Stack.Screen name="Addproduct" options={{ title: '➕ Add Product' }} />
       <Stack.Screen name="Productlist" options={{ title: '🧾 Product List' }} />
       <Stack.Screen name='ConfirmOrder' options={{ title: '✅ Confirm Order' }} />
       <Stack.Screen name="Categorylist" options={{ title: '📂 Category List' }} />
@@ -31,6 +30,10 @@ export default function RootLayout() {
       <Stack.Screen name='Sales' options={{ title: '🧙 Sales Management' }} />
       <Stack.Screen name='SalesHistory' options={{ title: '📜 Sales History' }} />
       <Stack.Screen name='ShiftSummary' options={{ title: '🕒 Shift Summary' }} />
+      <Stack.Screen name='AmountReceived' options={{ title: '💵 Amount Received' }} />
+      <Stack.Screen name='ReceiptPrint' options={{ title: '🧾 Receipt Print' }} />
+      <Stack.Screen name='PaymentComplete' options={{ title: '✅ Payment Complete' }} />
+      <Stack.Screen name='PaymentOption' options={{ title: '💳 Payment Options' }} />
     </Stack>
   );
 }
