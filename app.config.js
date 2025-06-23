@@ -48,6 +48,10 @@ module.exports = {
       },
       apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:8080',
       apiTimeout: parseInt(process.env.API_TIMEOUT || '10000', 10),
+      
+      cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
+      cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
+      cloudinaryUploadPreset: process.env.CLOUDINARY_UPLOAD_PRESET,
     },
     owner: 'reyviene7',
   },

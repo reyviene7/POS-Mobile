@@ -3,19 +3,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Dimensions,
   FlatList,
   Image,
-  Modal,
   SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from 'react-native';
-
-
-import productsData from '../src/scripts/products.json';
+import api from '../api';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -24,9 +23,10 @@ type ProductItem = {
   name: string;
   price: number;
   size?: string;
-  category: string;
-  quantity: number;
+  categoryId: number;
+  flavorName?: string;
   image?: string;
+  categoryName?: string;
 };
 
 export default function ProductList() {
@@ -35,57 +35,69 @@ export default function ProductList() {
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(null);
   const [isModalVisible, setModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadedProducts: ProductItem[] = [];
-
-    productsData.categories.forEach((category) => {
-      category.products.forEach((product: any, index: number) => {
-        const productImage = product.image || null;
-
-        if (product.variants) {
-          product.variants.forEach((variant: any, i: number) => {
-            loadedProducts.push({
-              id: `${category.name}-${index}-${i}`,
-              name: product.name,
-              price: variant.price,
-              size: variant.size,
-              category: category.name,
-              quantity: variant.quantity || 0,
-              image: productImage,
-            });
-          });
-        } else {
-          loadedProducts.push({
-            id: `${category.name}-${index}`,
-            name: product.name,
-            price: product.price,
-            category: category.name,
-            quantity: product.quantity || 0,
-            image: productImage,
-          });
-        }
-      });
-    });
-
-    setProducts(loadedProducts);
+    fetchProducts();
   }, []);
 
-  const getDefaultImage = (category: string) => {
-    switch (category) {
-      case 'Drinks':
-        return require('../assets/images/default-drink.jpg');
-      default:
-        return require('../assets/images/default-product.jpg');
+  const fetchProducts = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.get('/products/with-price');
+      const apiProducts = response.data;
+      console.log('Fetched products:', apiProducts); // Debug duplicates
+
+      // Ensure unique products by ID
+      const uniqueProducts = Array.from(
+        new Map(apiProducts.map((product: any) => [product.productId, product])).values()
+      );
+
+      const mappedProducts: ProductItem[] = uniqueProducts.map((product: any) => ({
+        id: product.productId.toString(),
+        name: product.productName,
+        price: parseFloat(product.price),
+        size: product.size || undefined,
+        categoryId: product.categoryId,
+        categoryName: product.categoryName,
+        flavorName: product.flavorName || undefined,
+        image: product.image || 'https://res.cloudinary.com/dzwjjpvdb/image/upload/v1750703171/EggCited/duaybsrpbbbbioafm3yo.jpg',
+      }));
+
+      setProducts(mappedProducts);
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      setError('Failed to load products. Please try again.');
+      Alert.alert('Error', 'Failed to load products. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const categories = ['All', ...Array.from(new Set(products.map((item) => item.category)))];
-
-  const filteredProducts =
-    filterCategory === 'All'
-      ? products
-      : products.filter((product) => product.category === filterCategory);
+  const handleDeleteProduct = async (id: string) => {
+    Alert.alert('Confirm Delete', 'Are you sure you want to delete this product?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          setLoading(true);
+          try {
+            await api.delete(`/products/${id}`);
+            Alert.alert('Success', 'Product deleted successfully!');
+            fetchProducts();
+          } catch (err) {
+            console.error('Error deleting product:', err);
+            Alert.alert('Error', 'Failed to delete product. Please try again.');
+          } finally {
+            setLoading(false);
+          }
+        },
+      },
+    ]);
+  };
 
   const handleEditProduct = (item: ProductItem) => {
     setSelectedProduct(item);
@@ -97,23 +109,64 @@ export default function ProductList() {
     setModalVisible(true);
   };
 
+  const handleSaveProduct = async (productData: any) => {
+    setLoading(true);
+    try {
+      const payload = {
+        productName: productData.name,
+        categoryId: productData.categoryId,
+        isVariant: productData.isVariant || false,
+        price: productData.price,
+        image: productData.image,
+      };
+
+      if (selectedProduct) {
+        await api.put(`/products/${selectedProduct.id}`, payload);
+        Alert.alert('Success', 'Product updated successfully!');
+      } else {
+        await api.post('/products', payload);
+        Alert.alert('Success', 'Product created successfully!');
+      }
+
+      fetchProducts();
+      setModalVisible(false);
+    } catch (err) {
+      console.error('Error saving product:', err);
+      Alert.alert('Error', 'Failed to save product. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const categories = ['All', ...Array.from(new Set(products.map((item) => item.categoryName)))];
+
+  const filteredProducts =
+    filterCategory === 'All'
+      ? products
+      : products.filter((product) => product.categoryName === filterCategory);
+
   const renderProductItem = ({ item }: { item: ProductItem }) => {
     if (viewMode === 'list') {
       return (
         <TouchableOpacity style={styles.card} onPress={() => handleEditProduct(item)}>
           <Image
-            source={item.image ? { uri: item.image } : getDefaultImage(item.category)}
+            source={{ uri: item.image }}
             style={styles.image}
             resizeMode="cover"
           />
           <View style={styles.details}>
             <Text style={styles.productName}>
-              {item.name} {item.size ? `(${item.size})` : ''}
+              {item.name} {item.size ? `(${item.size})` : ''} {item.flavorName ? `- ${item.flavorName}` : ''}
             </Text>
             <Text style={styles.productDetails}>
-              ₱{item.price} | Category: {item.category}
+              ₱{item.price} | Category: {item.categoryName}
             </Text>
-            <Text style={styles.productQuantity}>Qty: {item.quantity}</Text>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => handleDeleteProduct(item.id)}
+            >
+              <Ionicons name="trash" size={20} color="#EF4444" />
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       );
@@ -122,18 +175,23 @@ export default function ProductList() {
     return (
       <TouchableOpacity style={styles.gridCard} onPress={() => handleEditProduct(item)}>
         <Image
-          source={item.image ? { uri: item.image } : getDefaultImage(item.category)}
+          source={{ uri: item.image }}
           style={styles.gridImage}
           resizeMode="cover"
         />
         <View style={styles.gridDetails}>
           <Text style={styles.productName}>
-            {item.name} {item.size ? `(${item.size})` : ''}
+            {item.name} {item.size ? `(${item.size})` : ''} {item.flavorName ? `- ${item.flavorName}` : ''}
           </Text>
           <View style={styles.priceQuantityContainer}>
             <Text style={styles.productDetails}>₱{item.price}</Text>
-            <Text style={styles.productQuantity}>Qty: {item.quantity}</Text>
           </View>
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => handleDeleteProduct(item.id)}
+          >
+            <Ionicons name="trash" size={16} color="#EF4444" />
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     );
@@ -141,62 +199,69 @@ export default function ProductList() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Toggle View */}
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#F59E0B" />
+        </View>
+      )}
+      {error && <Text style={styles.errorText}>{error}</Text>}
       <View style={styles.viewModeContainer}>
         <TouchableOpacity
           style={[styles.viewModeButton, viewMode === 'list' && styles.activeViewMode]}
-          onPress={() => setViewMode('list')}>
+          onPress={() => setViewMode('list')}
+        >
           <Text style={styles.viewModeText}>List</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.viewModeButton, viewMode === 'grid' && styles.activeViewMode]}
-          onPress={() => setViewMode('grid')}>
+          onPress={() => setViewMode('grid')}
+        >
           <Text style={styles.viewModeText}>Grid</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Filter Picker */}
       <View style={styles.filterContainer}>
         <Text style={styles.filterLabel}>Filter by Category:</Text>
         <Picker
           selectedValue={filterCategory}
           onValueChange={(value) => setFilterCategory(value)}
-          style={styles.filterPicker}>
-          {categories.map((cat) => (
-            <Picker.Item key={cat} label={cat} value={cat} />
+          style={styles.filterPicker}
+        >
+          {categories.map((cat, index) => (
+            <Picker.Item key={`cat-${index}`} label={cat} value={cat} />
           ))}
         </Picker>
       </View>
 
-      {/* List/Grid View */}
       <FlatList
         data={filteredProducts}
         keyExtractor={(item) => item.id}
         key={viewMode}
         numColumns={viewMode === 'grid' ? 3 : 1}
-        contentContainerStyle={
-          viewMode === 'grid' ? styles.gridContent : styles.listContent
-        }
+        contentContainerStyle={viewMode === 'grid' ? styles.gridContent : styles.listContent}
         renderItem={renderProductItem}
       />
 
-      {/* Floating Add Button */}
       <TouchableOpacity style={styles.floatingButton} onPress={handleAddProduct}>
         <Ionicons name="add" size={30} color="#fff" />
       </TouchableOpacity>
 
-      <Modal
+      <ProductModal
         visible={isModalVisible}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <ProductModal
-          visible={true}
-          onClose={() => setModalVisible(false)}
-          product={selectedProduct} // important if you're editing
-        />
-      </Modal>
+        onClose={() => setModalVisible(false)}
+        onSave={handleSaveProduct}
+        product={
+          selectedProduct
+            ? {
+                id: Number(selectedProduct.id),
+                name: selectedProduct.name,
+                price: selectedProduct.price,
+                categoryId: selectedProduct.categoryId,
+                isVariant: false,
+              }
+            : null
+        }
+      />
     </SafeAreaView>
   );
 }
@@ -204,8 +269,20 @@ export default function ProductList() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFBEB', // EggShell cream background
+    backgroundColor: '#FFFBEB',
     padding: 16,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#EF4444',
+    textAlign: 'center',
+    marginBottom: 16,
+    fontSize: 16,
   },
   viewModeContainer: {
     flexDirection: 'row',
@@ -263,6 +340,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     flexDirection: 'row',
     marginBottom: 16,
+    marginHorizontal: 8,
     overflow: 'hidden',
     elevation: 3,
     shadowColor: '#000',
@@ -271,10 +349,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
   gridCard: {
-    width: (screenWidth - 32 - 24) / 3,
+    width: (screenWidth - 32 - 26) / 3,
     backgroundColor: '#FFF',
     borderRadius: 16,
-    margin: 4,
+    marginHorizontal: 2,
+    marginVertical: 4,
     overflow: 'hidden',
     elevation: 3,
   },
@@ -292,6 +371,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 12,
     justifyContent: 'center',
+    position: 'relative',
   },
   gridDetails: {
     padding: 8,
@@ -299,7 +379,7 @@ const styles = StyleSheet.create({
   },
   priceQuantityContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     width: '100%',
     marginTop: 4,
   },
@@ -315,11 +395,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: 'center',
   },
-  productQuantity: {
-    fontSize: 12,
-    color: '#374151',
-    marginTop: 2,
-    textAlign: 'center',
+  deleteButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    padding: 4,
   },
   floatingButton: {
     position: 'absolute',
@@ -338,4 +418,3 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
   },
 });
-
