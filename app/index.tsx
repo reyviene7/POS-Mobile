@@ -6,7 +6,7 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <Image
-        source={require('@/assets/images/EggCited-Logo-wo-bg.png')}
+        source="https://res.cloudinary.com/dzwjjpvdb/image/upload/v1750505959/EggCited/ixxau4ellammx0drebgo.png"
         style={styles.logo}
         contentFit="contain"
       />

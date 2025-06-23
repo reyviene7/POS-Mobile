@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import { SafeAreaView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 
-export default function PaymentOptionScreen() {
+export default function PaymentOption() {
   const router = useRouter();
   const { total } = useLocalSearchParams(); // from previous screen
 

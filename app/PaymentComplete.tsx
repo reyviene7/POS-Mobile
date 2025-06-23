@@ -1,19 +1,19 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import {
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
-export default function PaymentCompleteScreen() {
+export default function PaymentComplete() {
   const router = useRouter();
   const { total, received, change, method } = useLocalSearchParams();
 
   const handleNewEntry = () => {
-    router.replace('/PointOfSales'); // or wherever your sales start screen is
+    router.push('/PointOfSales'); // or wherever your sales start screen is
   };
 
   const handleOpenDrawer = () => {

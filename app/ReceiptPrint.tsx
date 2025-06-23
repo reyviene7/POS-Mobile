@@ -4,16 +4,16 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import React, { useRef } from 'react';
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
 
-export default function ReceiptPrintScreen() {
+export default function ReceiptPrint() {
   const { cart: cartString, total, received, change, method } = useLocalSearchParams();
   const cart = cartString ? JSON.parse(cartString) : [];
   const receiptRef = useRef(null);
