@@ -273,6 +273,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   deleteButton: {
+    justifyContent: 'flex-end',
     padding: 8,
   },
   fab: {

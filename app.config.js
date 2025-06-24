@@ -2,11 +2,11 @@ require('dotenv').config();
 
 module.exports = {
   expo: {
-    name: 'pos-mobile',
+    name: 'EggCited',
     slug: 'pos-mobile',
     version: '1.0.0',
     orientation: 'portrait',
-    icon: './assets/images/icon.png',
+    icon: 'https://res.cloudinary.com/dzwjjpvdb/image/upload/v1750444683/EggCited/q0bpsuj3u1t6xmmobxvk.jpg',
     scheme: 'posmobile',
     userInterfaceStyle: 'automatic',
     newArchEnabled: true,
@@ -15,7 +15,7 @@ module.exports = {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: './assets/images/adaptive-icon.png',
+        foregroundImage: 'https://res.cloudinary.com/dzwjjpvdb/image/upload/v1750444683/EggCited/q0bpsuj3u1t6xmmobxvk.jpg',
         backgroundColor: '#ffffff',
       },
       edgeToEdgeEnabled: true,
@@ -24,14 +24,14 @@ module.exports = {
     web: {
       bundler: 'metro',
       output: 'static',
-      favicon: './assets/images/favicon.png',
+      favicon: 'https://res.cloudinary.com/dzwjjpvdb/image/upload/v1750444683/EggCited/q0bpsuj3u1t6xmmobxvk.jpg',
     },
     plugins: [
       'expo-router',
       [
         'expo-splash-screen',
         {
-          image: './assets/images/splash-icon.png',
+          image: 'https://res.cloudinary.com/dzwjjpvdb/image/upload/v1750444683/EggCited/q0bpsuj3u1t6xmmobxvk.jpg',
           imageWidth: 200,
           resizeMode: 'contain',
           backgroundColor: '#ffffff',

@@ -1,8 +1,8 @@
 {
-  "store": "Eggdrop",
+  "store": "EggCited",
   "shiftSummary": [
     {
-      "orderId": "SHIFT001",
+      "orderId": "SALE001",
       "timestamp": "2025-06-11T09:12",
       "total": 278,
       "items": [
@@ -12,7 +12,7 @@
       ]
     },
     {
-      "orderId": "SHIFT002",
+      "orderId": "SALE002",
       "timestamp": "2025-06-11T10:35",
       "total": 149,
       "items": [
@@ -20,7 +20,7 @@
       ]
     },
     {
-      "orderId": "SHIFT003",
+      "orderId": "SALE003",
       "timestamp": "2025-06-11T11:50",
       "total": 218,
       "items": [

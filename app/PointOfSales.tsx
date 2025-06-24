@@ -322,7 +322,7 @@ export default function PointOfSales() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#FFFDEB',
     paddingHorizontal: 16,
     paddingTop: 12,
     position: 'relative'
