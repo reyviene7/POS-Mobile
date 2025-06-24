@@ -11,7 +11,7 @@ export default function HomeScreen() {
         contentFit="contain"
       />
       <Text style={styles.tagline}>
-        “Where Every Bite Cracks Joy — The OG Korean Eggdrop Sandwich!”
+        “At EggCited, we take the humble egg sandwich to the next level ✨”
       </Text>
 
       <Link href="/PointOfSales" asChild>
@@ -32,7 +32,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFDEB',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
