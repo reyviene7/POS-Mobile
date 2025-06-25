@@ -16,7 +16,6 @@ import CategoryModal from '../src/components/CategoryModal';
 type CategoryItem = {
   id: number;
   name: string;
-  productCount: number;
   addons: string[];
 };
 
@@ -172,7 +171,6 @@ export default function CategoryList() {
       <TouchableOpacity onPress={() => handleEdit(item)}>
         <View style={styles.details}>
           <Text style={styles.categoryName}>{item.name}</Text>
-          <Text style={styles.categoryDetails}>Products: {item.productCount}</Text>
           <Text style={styles.categoryAddons}>
             Add-ons: {item.addons.length > 0 ? item.addons.join(', ') : 'None'}
           </Text>

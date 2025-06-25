@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   StyleSheet,
@@ -7,24 +8,44 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import api from '../api';
 import PaymentModal from '../src/components/PaymentModal';
 
 type PaymentMethod = {
-  id: string;
+  paymentMethodId: number;
   name: string;
 };
 
 export default function Payment() {
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
-    { id: '1', name: 'Cash' },
-    { id: '2', name: 'Credit' },
-    { id: '3', name: 'GCash' },
-    { id: '4', name: 'Maya' },
-    { id: '5', name: 'Other E-Payment' },
-  ]);
-
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selected, setSelected] = useState<PaymentMethod | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchPaymentMethods();
+  }, []);
+
+  const fetchPaymentMethods = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.get('/payment-methods');
+      const fetchedMethods: PaymentMethod[] = response.data.map((method: any) => ({
+        paymentMethodId: method.paymentMethodId,
+        name: method.name,
+      }));
+      console.log('Fetched payment methods:', fetchedMethods);
+      setPaymentMethods(fetchedMethods);
+    } catch (err: any) {
+      console.error('Error fetching payment methods:', err.message, err.response?.data);
+      setError('Failed to load payment methods. Please try again.');
+      Alert.alert('Error', 'Failed to load payment methods.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAdd = () => {
     setSelected(null);
@@ -32,61 +53,90 @@ export default function Payment() {
   };
 
   const handleEdit = (method: PaymentMethod) => {
+    console.log('Editing payment method:', method);
     setSelected(method);
     setModalVisible(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (id: number) => {
     Alert.alert('Delete Method', 'Are you sure you want to remove this payment method?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => {
-          setPaymentMethods((prev) => prev.filter((m) => m.id !== id));
+        onPress: async () => {
+          setLoading(true);
+          try {
+            await api.delete(`/payment-methods/${id}`);
+            console.log('Deleted payment method:', id);
+            Alert.alert('Success', 'Payment method deleted successfully!');
+            fetchPaymentMethods();
+          } catch (err: any) {
+            console.error('Error deleting payment method:', err.message, err.response?.data);
+            Alert.alert('Error', 'Failed to delete payment method.');
+          } finally {
+            setLoading(false);
+          }
         },
       },
     ]);
   };
 
-  const handleSave = (method: PaymentMethod) => {
-    if (method.id) {
-      setPaymentMethods((prev) =>
-        prev.map((m) => (m.id === method.id ? method : m))
-      );
-    } else {
-      const newMethod = { ...method, id: Date.now().toString() };
-      setPaymentMethods((prev) => [newMethod, ...prev]);
+  const handleSave = async (method: { name: string }) => {
+    setLoading(true);
+    try {
+      if (selected) {
+        // Update existing
+        const response = await api.put(`/payment-methods/${selected.paymentMethodId}`, { name: method.name });
+        console.log('Updated payment method:', response.data);
+        Alert.alert('Success', 'Payment method updated successfully!');
+      } else {
+        // Add new
+        const response = await api.post('/payment-methods', { name: method.name });
+        console.log('Created payment method:', response.data);
+        Alert.alert('Success', 'Payment method created successfully!');
+      }
+      fetchPaymentMethods();
+      setModalVisible(false);
+    } catch (err: any) {
+      console.error('Error saving payment method:', err.message, err.response?.data);
+      Alert.alert('Error', 'Failed to save payment method. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setModalVisible(false);
   };
+
+  const renderItem = ({ item }: { item: PaymentMethod }) => (
+    <TouchableOpacity style={styles.card} onPress={() => handleEdit(item)}>
+      <Text style={styles.method}>{item.name}</Text>
+      <TouchableOpacity onPress={() => handleDelete(item.paymentMethodId)}>
+        <Text style={styles.delete}>🗑</Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#FCD34D" />
+        </View>
+      )}
+      {error && <Text style={styles.errorText}>{error}</Text>}
       <Text style={styles.title}>🍳 Payment Options</Text>
       <Text style={styles.subtitle}>Keep track of how your customers pay</Text>
-
       <TouchableOpacity style={styles.addButton} onPress={handleAdd}>
         <Text style={styles.addButtonText}>+ Add New Payment Method</Text>
       </TouchableOpacity>
-
       <FlatList
         data={paymentMethods}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.paymentMethodId.toString()}
         contentContainerStyle={{ paddingTop: 16 }}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.card} onPress={() => handleEdit(item)}>
-            <Text style={styles.method}>{item.name}</Text>
-            <TouchableOpacity onPress={() => handleDelete(item.id)}>
-              <Text style={styles.delete}>🗑</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        )}
+        renderItem={renderItem}
         ListEmptyComponent={
           <Text style={styles.emptyText}>No payment methods yet 🐣</Text>
         }
       />
-
       <PaymentModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
@@ -100,7 +150,7 @@ export default function Payment() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFBEB',
+    backgroundColor: '#FFFDEB',
     padding: 20,
   },
   title: {
@@ -158,5 +208,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#9CA3AF',
     marginTop: 32,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#EF4444',
+    textAlign: 'center',
+    marginBottom: 16,
+    fontSize: 16,
   },
 });

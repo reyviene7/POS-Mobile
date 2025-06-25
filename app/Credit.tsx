@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   StyleSheet,
@@ -8,10 +9,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import api from '../api';
 import CreditModal from '../src/components/CreditModal';
 
 type CreditRecord = {
-  id: string;
+  creditId: number;
   orderId: string;
   customerName: string;
   amount: number;
@@ -21,20 +23,41 @@ type CreditRecord = {
 };
 
 export default function Credit() {
-  const [credits, setCredits] = useState<CreditRecord[]>([
-    {
-      id: '1',
-      orderId: 'SALE004',
-      customerName: 'Rey Pasiculan',
-      amount: 636,
-      paid: 200,
-      dueDate: '2025-06-28T19:05:00',
-      timestamp: '2025-06-21T19:05:00',
-    },
-  ]);
-
+  const [credits, setCredits] = useState<CreditRecord[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedCredit, setSelectedCredit] = useState<CreditRecord | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchCredits();
+  }, []);
+
+  const fetchCredits = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.get('/credit-transactions');
+      console.log('Raw backend response:', response.data);
+      const fetchedCredits: CreditRecord[] = response.data.map((credit: any) => ({
+        creditId: credit.creditId,
+        orderId: credit.salesHistory?.orderId || credit.orderId || '',
+        customerName: credit.customerName,
+        amount: parseFloat(credit.amount) || 0,
+        paid: parseFloat(String(credit.paid ?? '0')) || 0,
+        dueDate: credit.dueDate ? new Date(credit.dueDate).toISOString() : '',
+        timestamp: credit.timestamp ? new Date(credit.timestamp).toISOString() : '',
+      }));
+      console.log('Fetched credits:', fetchedCredits);
+      setCredits(fetchedCredits);
+    } catch (err: any) {
+      console.error('Error fetching credits:', err.message, err.response?.data);
+      setError('Failed to load credit records. Please try again.');
+      Alert.alert('Error', 'Failed to load credit records.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAdd = () => {
     setSelectedCredit(null);
@@ -42,36 +65,66 @@ export default function Credit() {
   };
 
   const handleEdit = (record: CreditRecord) => {
+    console.log('Editing credit:', record);
     setSelectedCredit(record);
     setModalVisible(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (id: number) => {
     Alert.alert('Delete Credit', 'Are you sure you want to delete this record?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => {
-          setCredits((prev) => prev.filter((c) => c.id !== id));
+        onPress: async () => {
+          setLoading(true);
+          try {
+            await api.delete(`/credit-transactions/${id}`);
+            console.log('Deleted credit:', id);
+            Alert.alert('Success', 'Credit record deleted successfully!');
+            fetchCredits();
+          } catch (err: any) {
+            console.error('Error deleting credit:', err.message, err.response?.data);
+            Alert.alert('Error', 'Failed to delete credit record.');
+          } finally {
+            setLoading(false);
+          }
         },
       },
     ]);
   };
 
-  const handleSave = (credit: CreditRecord) => {
-    if (credit.id) {
-      setCredits((prev) =>
-        prev.map((c) => (c.id === credit.id ? credit : c))
-      );
-    } else {
-      const newCredit = {
-        ...credit,
-        id: Date.now().toString(),
+  const handleSave = async (credit: Omit<CreditRecord, 'creditId'>) => {
+    setLoading(true);
+    try {
+      const payload = {
+        orderId: credit.orderId,
+        customerName: credit.customerName,
+        amount: credit.amount,
+        paid: credit.paid,
+        dueDate: credit.dueDate ? new Date(credit.dueDate).toISOString().split('T')[0] : null,
+        timestamp: credit.timestamp || new Date().toISOString(),
       };
-      setCredits((prev) => [newCredit, ...prev]);
+      console.log('Sending payload:', payload);
+      if (selectedCredit) {
+        // Update existing
+        const response = await api.put(`/credit-transactions/${selectedCredit.creditId}`, payload);
+        console.log('Updated credit:', response.data);
+        Alert.alert('Success', 'Credit record updated successfully!');
+      } else {
+        // Add new
+        const response = await api.post('/credit-transactions', payload);
+        console.log('Created credit:', response.data);
+        Alert.alert('Success', 'Credit record created successfully!');
+      }
+      fetchCredits();
+      setModalVisible(false);
+    } catch (err: any) {
+      console.error('Error saving credit:', err.message, err.response?.data);
+      Alert.alert('Error', 'Failed to save credit record. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setModalVisible(false);
   };
 
   const renderItem = ({ item }: { item: CreditRecord }) => {
@@ -84,11 +137,12 @@ export default function Credit() {
           <Text style={styles.timestamp}>🕒 {new Date(item.timestamp).toLocaleString()}</Text>
           <Text style={styles.due}>📅 Due: {new Date(item.dueDate).toLocaleString()}</Text>
           <Text style={styles.balance}>
-            Total: ₱{item.amount.toFixed(2)} | Paid: ₱{item.paid.toFixed(2)} | <Text style={styles.unpaid}>Unpaid: ₱{balance.toFixed(2)}</Text>
+            Total: ₱{item.amount.toFixed(2)} | Paid: ₱{item.paid.toFixed(2)} |{' '}
+            <Text style={styles.unpaid}>Unpaid: ₱{balance.toFixed(2)}</Text>
           </Text>
         </View>
         <View style={styles.actions}>
-          <TouchableOpacity onPress={() => handleDelete(item.id)}>
+          <TouchableOpacity onPress={() => handleDelete(item.creditId)}>
             <Ionicons name="trash-outline" size={22} color="#EF4444" />
           </TouchableOpacity>
         </View>
@@ -98,23 +152,26 @@ export default function Credit() {
 
   return (
     <View style={styles.container}>
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#FCD34D" />
+        </View>
+      )}
+      {error && <Text style={styles.errorText}>{error}</Text>}
       <Text style={styles.title}>🏦 Credit</Text>
       <Text style={styles.subtitle}>Track customer utang and partial payments</Text>
-
       <TouchableOpacity style={styles.button} onPress={handleAdd}>
         <Text style={styles.buttonText}>+ Add Credit Record</Text>
       </TouchableOpacity>
-
       <FlatList
         data={credits}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.creditId.toString()}
         renderItem={renderItem}
         contentContainerStyle={{ paddingTop: 16 }}
         ListEmptyComponent={
           <Text style={styles.emptyText}>No credit records found.</Text>
         }
       />
-
       <CreditModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
@@ -124,10 +181,11 @@ export default function Credit() {
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#FFFDEB',
     padding: 20,
   },
   title: {
@@ -144,17 +202,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   button: {
-    backgroundColor: '#FBBF24',
+    backgroundColor: '#FCD34D',
     borderRadius: 12,
     paddingVertical: 14,
-    paddingHorizontal: 24,
+    paddingHorizontal: 30,
     alignSelf: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
   },
   buttonText: {
-    color: '#78350F',
+    color: '#92400E',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   card: {
     backgroundColor: '#fff',
@@ -209,5 +269,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 40,
     color: '#9CA3AF',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#EF4444',
+    textAlign: 'center',
+    marginBottom: 16,
+    fontSize: 16,
   },
 });

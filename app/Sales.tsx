@@ -36,7 +36,7 @@ export default function Sales() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFBEB',
+    backgroundColor: '#FFFDEB',
     padding: 24,
     paddingTop: 48,
   },
