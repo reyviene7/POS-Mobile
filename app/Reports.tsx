@@ -1,20 +1,53 @@
-import React, { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { generateSalesHistoryPDF } from '../src/components/GenerateSalesReport';
 
 export default function Reports() {
   const [loading, setLoading] = useState<string | null>(null);
+const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
 
+  useEffect(() => {
+    if (!hasShownInitialToast) {
+      Toast.show({
+        type: 'success',
+        text1: '🥪 Freshly Baked!',
+        text2: 'Welcome to Reports!',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+      setHasShownInitialToast(true);
+    }
+  }, [hasShownInitialToast]);
+  
   const handleGenerate = async (type: string) => {
     setLoading(type);
     try {
       if (type === 'Sales History') {
         await generateSalesHistoryPDF();
       } else {
-        Alert.alert('📑 Report Generated', `${type} Report has been generated!`);
+        Toast.show({
+          type: 'success',
+          text1: '🥪 Yum!',
+          text2: `${type} Report generated successfully!`,
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || `Failed to generate ${type} Report.`);
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oops!',
+        text2: `Failed to generate ${type} Report.`,
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     } finally {
       setLoading(null);
     }

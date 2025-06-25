@@ -2,15 +2,16 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import api from '../api';
 import CashModal from '../src/components/CashModal';
+import DeleteModal from '../src/components/DeleteModal';
 
 type CashTransaction = {
   id: string;
@@ -25,6 +26,9 @@ export default function Cash() {
   const [selectedTransaction, setSelectedTransaction] = useState<CashTransaction | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
+  const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
 
   useEffect(() => {
     fetchTransactions();
@@ -44,13 +48,38 @@ export default function Cash() {
       }));
       console.log('Fetched transactions:', fetchedTransactions);
       setTransactions(fetchedTransactions);
+      if (!hasShownInitialToast) {
+        Toast.show({
+          type: 'success',
+          text1: '🥪 Freshly Baked!',
+          text2: 'Cash transactions loaded successfully!',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
+        setHasShownInitialToast(true);
+      }
     } catch (err: any) {
       console.error('Error fetching transactions:', err.message, err.response?.data);
       setError('Failed to load cash transactions. Please try again.');
-      Alert.alert('Error', 'Failed to load cash transactions.');
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oh No!',
+        text2: 'Failed to load cash transactions.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDelete = (id: string) => {
+    setTransactionToDelete(id);
+    setDeleteConfirmVisible(true);
   };
 
   const handleEdit = (transaction: CashTransaction) => {
@@ -59,28 +88,43 @@ export default function Cash() {
     setModalVisible(true);
   };
 
-  const handleDelete = (id: string) => {
-    Alert.alert('Delete Transaction', 'Are you sure you want to delete this transaction?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          setLoading(true);
-          try {
-            await api.delete(`/cash-transactions/${id}`);
-            console.log('Deleted transaction:', id);
-            Alert.alert('Success', 'Cash transaction deleted successfully!');
-            fetchTransactions();
-          } catch (err: any) {
-            console.error('Error deleting transaction:', err.message, err.response?.data);
-            Alert.alert('Error', 'Failed to delete cash transaction.');
-          } finally {
-            setLoading(false);
-          }
-        },
-      },
-    ]);
+  const confirmDelete = async () => {
+    if (!transactionToDelete) return;
+    setDeleteConfirmVisible(false);
+    setLoading(true);
+    try {
+      await api.delete(`/cash-transactions/${transactionToDelete}`);
+      console.log('Deleted transaction:', transactionToDelete);
+      Toast.show({
+        type: 'success',
+        text1: '🥪 Yum!',
+        text2: 'Cash transaction removed successfully!',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+      fetchTransactions();
+    } catch (err: any) {
+      console.error('Error deleting transaction:', err.message, err.response?.data);
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oops!',
+        text2: 'Failed to delete cash transaction.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+    } finally {
+      setLoading(false);
+      setTransactionToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmVisible(false);
+    setTransactionToDelete(null);
   };
 
   const handleSave = async (transaction: Omit<CashTransaction, 'id'>) => {
@@ -95,12 +139,28 @@ export default function Cash() {
       console.log('Sending payload:', payload);
       const response = await api.put(`/cash-transactions/${selectedTransaction.id}`, payload);
       console.log('Updated transaction:', response.data);
-      Alert.alert('Success', 'Cash transaction updated successfully!');
+      Toast.show({
+        type: 'success',
+        text1: '🥪 Yum!',
+        text2: 'Cash transaction updated successfully!',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
       fetchTransactions();
       setModalVisible(false);
     } catch (err: any) {
       console.error('Error saving transaction:', err.message, err.response?.data);
-      Alert.alert('Error', 'Failed to save cash transaction. Please try again.');
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oops!',
+        text2: 'Failed to save cash transaction.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     } finally {
       setLoading(false);
     }
@@ -148,6 +208,12 @@ export default function Cash() {
         transaction={selectedTransaction}
         onSave={handleSave}
         onDelete={() => handleDelete(selectedTransaction?.id || '')}
+      />
+      <DeleteModal
+        visible={deleteConfirmVisible}
+        itemType="cash record"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
       />
     </View>
   );

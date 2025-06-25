@@ -1,13 +1,14 @@
+import DeleteModal from '@/src/components/DeleteModal';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import api from '../api';
 import PaymentModal from '../src/components/PaymentModal';
 
@@ -22,6 +23,9 @@ export default function Payment() {
   const [selected, setSelected] = useState<PaymentMethod | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [paymentMethodToDelete, setPaymentMethodToDelete] = useState<number | null>(null);
+  const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
 
   useEffect(() => {
     fetchPaymentMethods();
@@ -38,10 +42,30 @@ export default function Payment() {
       }));
       console.log('Fetched payment methods:', fetchedMethods);
       setPaymentMethods(fetchedMethods);
+      if (!hasShownInitialToast) {
+        Toast.show({
+          type: 'success',
+          text1: '🥪 Freshly Baked!',
+          text2: 'Payment methods loaded successfully!',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
+        setHasShownInitialToast(true);
+      }
     } catch (err: any) {
       console.error('Error fetching payment methods:', err.message, err.response?.data);
       setError('Failed to load payment methods. Please try again.');
-      Alert.alert('Error', 'Failed to load payment methods.');
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oh No!',
+        text2: 'Failed to load payment methods.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     } finally {
       setLoading(false);
     }
@@ -59,48 +83,78 @@ export default function Payment() {
   };
 
   const handleDelete = (id: number) => {
-    Alert.alert('Delete Method', 'Are you sure you want to remove this payment method?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          setLoading(true);
-          try {
-            await api.delete(`/payment-methods/${id}`);
-            console.log('Deleted payment method:', id);
-            Alert.alert('Success', 'Payment method deleted successfully!');
-            fetchPaymentMethods();
-          } catch (err: any) {
-            console.error('Error deleting payment method:', err.message, err.response?.data);
-            Alert.alert('Error', 'Failed to delete payment method.');
-          } finally {
-            setLoading(false);
-          }
-        },
-      },
-    ]);
+    setPaymentMethodToDelete(id);
+    setDeleteConfirmVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!paymentMethodToDelete) return;
+    setDeleteConfirmVisible(false);
+    setLoading(true);
+    try {
+      await api.delete(`/payment-methods/${paymentMethodToDelete}`);
+      console.log('Deleted payment method:', paymentMethodToDelete);
+      Toast.show({
+        type: 'success',
+        text1: '🥪 Yum!',
+        text2: 'Payment method removed successfully!',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+      fetchPaymentMethods();
+    } catch (err: any) {
+      console.error('Error deleting payment method:', err.message, err.response?.data);
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oops!',
+        text2: 'Failed to delete payment method.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+    } finally {
+      setLoading(false);
+      setPaymentMethodToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmVisible(false);
+    setPaymentMethodToDelete(null);
   };
 
   const handleSave = async (method: { name: string }) => {
     setLoading(true);
     try {
       if (selected) {
-        // Update existing
         const response = await api.put(`/payment-methods/${selected.paymentMethodId}`, { name: method.name });
         console.log('Updated payment method:', response.data);
-        Alert.alert('Success', 'Payment method updated successfully!');
+        Toast.show({
+        type: 'success',
+        text1: '✅ Payment Updated',
+        text2: 'Payment method updated successfully!',
+        });
       } else {
-        // Add new
         const response = await api.post('/payment-methods', { name: method.name });
         console.log('Created payment method:', response.data);
-        Alert.alert('Success', 'Payment method created successfully!');
+        Toast.show({
+        type: 'success',
+        text1: '🎉 Payment Added',
+        text2: 'New payment method created!',
+        });
       }
       fetchPaymentMethods();
       setModalVisible(false);
     } catch (err: any) {
       console.error('Error saving payment method:', err.message, err.response?.data);
-      Alert.alert('Error', 'Failed to save payment method. Please try again.');
+      Toast.show({
+      type: 'error',
+      text1: '❌ Error Saving',
+      text2: 'Failed to save payment method. Please try again.',
+      });
     } finally {
       setLoading(false);
     }
@@ -136,6 +190,12 @@ export default function Payment() {
         ListEmptyComponent={
           <Text style={styles.emptyText}>No payment methods yet 🐣</Text>
         }
+      />
+      <DeleteModal
+        visible={deleteConfirmVisible}
+        itemType="payment method"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
       />
       <PaymentModal
         visible={modalVisible}

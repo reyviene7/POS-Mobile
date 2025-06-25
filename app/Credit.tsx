@@ -2,15 +2,16 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import api from '../api';
 import CreditModal from '../src/components/CreditModal';
+import DeleteModal from '../src/components/DeleteModal';
 
 type CreditRecord = {
   creditId: number;
@@ -28,6 +29,9 @@ export default function Credit() {
   const [selectedCredit, setSelectedCredit] = useState<CreditRecord | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [creditToDelete, setCreditToDelete] = useState<number | null>(null);
+  const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
 
   useEffect(() => {
     fetchCredits();
@@ -50,10 +54,30 @@ export default function Credit() {
       }));
       console.log('Fetched credits:', fetchedCredits);
       setCredits(fetchedCredits);
+      if (!hasShownInitialToast) {
+        Toast.show({
+          type: 'success',
+          text1: '🥪 Freshly Baked!',
+          text2: 'Credit records loaded successfully!',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
+        setHasShownInitialToast(true);
+      }
     } catch (err: any) {
       console.error('Error fetching credits:', err.message, err.response?.data);
       setError('Failed to load credit records. Please try again.');
-      Alert.alert('Error', 'Failed to load credit records.');
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oh No!',
+        text2: 'Failed to load credit records.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     } finally {
       setLoading(false);
     }
@@ -71,27 +95,47 @@ export default function Credit() {
   };
 
   const handleDelete = (id: number) => {
-    Alert.alert('Delete Credit', 'Are you sure you want to delete this record?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          setLoading(true);
-          try {
-            await api.delete(`/credit-transactions/${id}`);
-            console.log('Deleted credit:', id);
-            Alert.alert('Success', 'Credit record deleted successfully!');
-            fetchCredits();
-          } catch (err: any) {
-            console.error('Error deleting credit:', err.message, err.response?.data);
-            Alert.alert('Error', 'Failed to delete credit record.');
-          } finally {
-            setLoading(false);
-          }
-        },
-      },
-    ]);
+    setCreditToDelete(id);
+    setDeleteConfirmVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!creditToDelete) return;
+    setDeleteConfirmVisible(false);
+    setLoading(true);
+    try {
+      await api.delete(`/credit-transactions/${creditToDelete}`);
+      console.log('Deleted credit:', creditToDelete);
+      Toast.show({
+        type: 'success',
+        text1: '🥪 Yum!',
+        text2: 'Credit record removed successfully!',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+      fetchCredits();
+    } catch (err: any) {
+      console.error('Error deleting credit:', err.message, err.response?.data);
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oops!',
+        text2: 'Failed to delete credit record.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+    } finally {
+      setLoading(false);
+      setCreditToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmVisible(false);
+    setCreditToDelete(null);
   };
 
   const handleSave = async (credit: Omit<CreditRecord, 'creditId'>) => {
@@ -110,18 +154,42 @@ export default function Credit() {
         // Update existing
         const response = await api.put(`/credit-transactions/${selectedCredit.creditId}`, payload);
         console.log('Updated credit:', response.data);
-        Alert.alert('Success', 'Credit record updated successfully!');
+        Toast.show({
+          type: 'success',
+          text1: '🥪 Yum!',
+          text2: 'Credit record updated successfully!',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
       } else {
         // Add new
         const response = await api.post('/credit-transactions', payload);
         console.log('Created credit:', response.data);
-        Alert.alert('Success', 'Credit record created successfully!');
+        Toast.show({
+          type: 'success',
+          text1: '🥪 Yum!',
+          text2: 'Credit record created successfully!',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
       }
       fetchCredits();
       setModalVisible(false);
     } catch (err: any) {
       console.error('Error saving credit:', err.message, err.response?.data);
-      Alert.alert('Error', 'Failed to save credit record. Please try again.');
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oops!',
+        text2: 'Failed to save credit record.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     } finally {
       setLoading(false);
     }
@@ -171,6 +239,12 @@ export default function Credit() {
         ListEmptyComponent={
           <Text style={styles.emptyText}>No credit records found.</Text>
         }
+      />
+      <DeleteModal
+        visible={deleteConfirmVisible}
+        itemType="credit record"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
       />
       <CreditModal
         visible={modalVisible}

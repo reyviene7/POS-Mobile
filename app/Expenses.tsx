@@ -1,13 +1,14 @@
+import DeleteModal from '@/src/components/DeleteModal';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import api from '../api';
 import ExpensesModal from '../src/components/ExpensesModal';
 
@@ -26,6 +27,9 @@ export default function Expenses() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState<number | null>(null);
+  const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
 
   useEffect(() => {
     fetchExpenses();
@@ -46,10 +50,30 @@ export default function Expenses() {
       }));
       console.log('Fetched expenses:', fetchedExpenses);
       setExpenses(fetchedExpenses);
+      if (!hasShownInitialToast) {
+        Toast.show({
+          type: 'success',
+          text1: '🥪 Freshly Baked!',
+          text2: 'Expenses loaded successfully!',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
+        setHasShownInitialToast(true);
+      }
     } catch (err: any) {
       console.error('Error fetching expenses:', err.message, err.response?.data);
       setError('Failed to load expenses. Please try again.');
-      Alert.alert('Error', 'Failed to load expenses.');
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oh No!',
+        text2: 'Failed to load expenses.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     } finally {
       setLoading(false);
     }
@@ -80,45 +104,89 @@ export default function Expenses() {
         // Update existing
         const response = await api.put(`/expenses/${selectedExpense.expenseId}`, payload);
         console.log('Updated expense:', response.data);
-        Alert.alert('Success', 'Expense updated successfully!');
+        Toast.show({
+          type: 'success',
+          text1: '🥪 Yum!',
+          text2: 'Expense updated successfully!',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
       } else {
         // Add new
         const response = await api.post('/expenses', payload);
         console.log('Created expense:', response.data);
-        Alert.alert('Success', 'Expense created successfully!');
+        Toast.show({
+          type: 'success',
+          text1: '🥪 Yum!',
+          text2: 'Expense created successfully!',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
       }
       fetchExpenses();
       setModalVisible(false);
     } catch (err: any) {
       console.error('Error saving expense:', err.message, err.response?.data);
-      Alert.alert('Error', 'Failed to save expense. Please try again.');
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oops!',
+        text2: 'Failed to save expense.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = (id: number) => {
-    Alert.alert('Delete Expense', 'Are you sure you want to delete this?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          setLoading(true);
-          try {
-            await api.delete(`/expenses/${id}`);
-            console.log('Deleted expense:', id);
-            Alert.alert('Success', 'Expense deleted successfully!');
-            fetchExpenses();
-          } catch (err: any) {
-            console.error('Error deleting expense:', err.message, err.response?.data);
-            Alert.alert('Error', 'Failed to delete expense.');
-          } finally {
-            setLoading(false);
-          }
-        },
-      },
-    ]);
+    setExpenseToDelete(id);
+    setDeleteConfirmVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!expenseToDelete) return;
+    setDeleteConfirmVisible(false);
+    setLoading(true);
+    try {
+      await api.delete(`/expenses/${expenseToDelete}`);
+      console.log('Deleted expense:', expenseToDelete);
+      Toast.show({
+        type: 'success',
+        text1: '🥪 Yum!',
+        text2: 'Expense removed successfully!',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+      fetchExpenses();
+    } catch (err: any) {
+      console.error('Error deleting expense:', err.message, err.response?.data);
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oops!',
+        text2: 'Failed to delete expense.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+    } finally {
+      setLoading(false);
+      setExpenseToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmVisible(false);
+    setExpenseToDelete(null);
   };
 
   const renderItem = ({ item }: { item: Expense }) => (
@@ -152,6 +220,12 @@ export default function Expenses() {
       <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
         <Text style={styles.addButtonText}>+ Add New Expense</Text>
       </TouchableOpacity>
+      <DeleteModal
+        visible={deleteConfirmVisible}
+        itemType="expense"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
       <FlatList
         data={expenses}
         keyExtractor={(item) => item.expenseId.toString()}

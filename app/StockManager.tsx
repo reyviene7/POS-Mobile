@@ -1,14 +1,15 @@
+import DeleteModal from '@/src/components/DeleteModal';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import api from '../api';
 import StockManagerModal from '../src/components/StockManagerModal';
 
@@ -23,6 +24,9 @@ export default function StockManager() {
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [stockToDelete, setStockToDelete] = useState<string | null>(null);
+  const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
 
   useEffect(() => {
     fetchStocks();
@@ -43,10 +47,30 @@ export default function StockManager() {
       console.log('Fetched stocks:', fetchedStocks);
       setStocks(fetchedStocks);
       setFilteredStocks(fetchedStocks);
+      if (!hasShownInitialToast) {
+        Toast.show({
+          type: 'success',
+          text1: '🥪 Freshly Baked!',
+          text2: 'Stocks loaded successfully!',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
+        setHasShownInitialToast(true);
+      }
     } catch (err: any) {
       console.error('Error fetching stocks:', err.message, err.response?.data);
       setError('Failed to load stocks. Please try again.');
-      Alert.alert('Error', 'Failed to load stocks.');
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oh No!',
+        text2: 'Failed to load stocks.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     } finally {
       setLoading(false);
     }
@@ -72,45 +96,89 @@ export default function StockManager() {
         // Update
         const response = await api.put(`/stocks/${item.id}`, payload);
         console.log('Updated stock:', response.data);
-        Alert.alert('Success', 'Stock updated successfully!');
+        Toast.show({
+          type: 'success',
+          text1: '🥪 Yum!',
+          text2: 'Stock updated successfully!',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
       } else {
         // Add
         const response = await api.post('/stocks', payload);
         console.log('Created stock:', response.data);
-        Alert.alert('Success', 'Stock added successfully!');
+        Toast.show({
+          type: 'success',
+          text1: '🥪 Yum!',
+          text2: 'Stock added successfully!',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
       }
       fetchStocks();
       setModalVisible(false);
     } catch (err: any) {
       console.error('Error saving stock:', err.message, err.response?.data);
-      Alert.alert('Error', 'Failed to save stock. Please try again.');
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oops!',
+        text2: 'Failed to save stock.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const deleteItem = (id: string) => {
-    Alert.alert('Delete Ingredient', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          setLoading(true);
-          try {
-            await api.delete(`/stocks/${id}`);
-            console.log('Deleted stock:', id);
-            Alert.alert('Success', 'Stock deleted successfully!');
-            fetchStocks();
-          } catch (err: any) {
-            console.error('Error deleting stock:', err.message, err.response?.data);
-            Alert.alert('Error', 'Failed to delete stock.');
-          } finally {
-            setLoading(false);
-          }
-        },
-      },
-    ]);
+    setStockToDelete(id);
+    setDeleteConfirmVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!stockToDelete) return;
+    setDeleteConfirmVisible(false);
+    setLoading(true);
+    try {
+      await api.delete(`/stocks/${stockToDelete}`);
+      console.log('Deleted stock:', stockToDelete);
+      Toast.show({
+        type: 'success',
+        text1: '🥪 Yum!',
+        text2: 'Stock removed successfully!',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+      fetchStocks();
+    } catch (err: any) {
+      console.error('Error deleting stock:', err.message, err.response?.data);
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oops!',
+        text2: 'Failed to delete stock.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+    } finally {
+      setLoading(false);
+      setStockToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmVisible(false);
+    setStockToDelete(null);
   };
 
   const renderItem = ({ item }: { item: StockItem }) => (
@@ -167,6 +235,12 @@ export default function StockManager() {
         onClose={() => setModalVisible(false)}
         onSave={saveItem}
         item={editingItem}
+      />
+      <DeleteModal
+        visible={deleteConfirmVisible}
+        itemType="stock"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
       />
     </View>
   );
