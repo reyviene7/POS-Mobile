@@ -2,62 +2,53 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
-  Modal,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    Modal,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import api from '../../api';
 
-type CreditRecord = {
-  creditId?: number;
+type CashTransaction = {
+  id: string;
   orderId: string;
-  customerName: string;
   amount: number;
-  paid: number;
-  dueDate: string;
   timestamp: string;
 };
 
 type Props = {
   visible: boolean;
   onClose: () => void;
-  credit: CreditRecord | null;
-  onSave: (record: Omit<CreditRecord, 'creditId'>) => void;
+  transaction: CashTransaction | null;
+  onSave: (transaction: Omit<CashTransaction, 'id'>) => void;
+  onDelete: () => void;
 };
 
-export default function CreditModal({ visible, onClose, credit, onSave }: Props) {
+export default function CashModal({ visible, onClose, transaction, onSave, onDelete }: Props) {
   const [orderId, setOrderId] = useState('');
-  const [customerName, setCustomerName] = useState('');
   const [amount, setAmount] = useState('');
-  const [paid, setPaid] = useState('');
-  const [dueDate, setDueDate] = useState(new Date());
+  const [timestamp, setTimestamp] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
   const [orderIds, setOrderIds] = useState<string[]>([]);
   const [loadingOrderIds, setLoadingOrderIds] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log('Credit prop received:', credit);
-    if (credit) {
-      setOrderId(credit.orderId);
-      setCustomerName(credit.customerName);
-      setAmount(credit.amount.toString());
-      setPaid(credit.paid.toString());
-      setDueDate(new Date(credit.dueDate));
+    if (transaction) {
+      setOrderId(transaction.orderId);
+      setAmount(transaction.amount.toString());
+      setTimestamp(new Date(transaction.timestamp));
     } else {
       setOrderId('');
-      setCustomerName('');
       setAmount('');
-      setPaid('');
-      setDueDate(new Date());
+      setTimestamp(new Date());
     }
     fetchOrderIds();
-  }, [credit]);
+  }, [transaction]);
 
   const fetchOrderIds = async () => {
     setLoadingOrderIds(true);
@@ -80,44 +71,28 @@ export default function CreditModal({ visible, onClose, credit, onSave }: Props)
       Alert.alert('Error', 'Order ID is required.');
       return;
     }
-    if (!customerName.trim()) {
-      Alert.alert('Error', 'Customer name is required.');
-      return;
-    }
     if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
       Alert.alert('Error', 'Valid amount is required.');
       return;
     }
-    const paidValue = parseFloat(paid || '0');
-    if (isNaN(paidValue) || paidValue < 0) {
-      Alert.alert('Error', 'Valid paid amount is required.');
-      return;
-    }
-    if (paidValue > parseFloat(amount)) {
-      Alert.alert('Error', 'Paid amount cannot exceed total amount.');
-      return;
-    }
 
-    const creditData: Omit<CreditRecord, 'creditId'> = {
+    const transactionData: Omit<CashTransaction, 'id'> = {
       orderId: orderId.trim(),
-      customerName: customerName.trim(),
       amount: parseFloat(amount),
-      paid: paidValue,
-      dueDate: dueDate.toISOString(),
-      timestamp: new Date().toISOString(),
+      timestamp: timestamp.toISOString(),
     };
 
-    console.log('Saving credit:', creditData);
-    onSave(creditData);
+    console.log('Saving transaction:', transactionData);
+    onSave(transactionData);
   };
 
-  if (!visible) return null;
+  if (!visible || !transaction) return null;
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal visible={visible} transparent animationType="slide">
       <View style={styles.overlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.title}>{credit ? 'Edit Credit' : 'Add Credit'}</Text>
+        <View style={styles.modal}>
+          <Text style={styles.title}>💵 Edit Cash Transaction</Text>
           {error && <Text style={styles.errorText}>{error}</Text>}
           {loadingOrderIds ? (
             <Text>Loading order IDs...</Text>
@@ -134,23 +109,10 @@ export default function CreditModal({ visible, onClose, credit, onSave }: Props)
             </Picker>
           )}
           <TextInput
-            placeholder="Customer Name"
-            style={styles.input}
-            value={customerName}
-            onChangeText={setCustomerName}
-          />
-          <TextInput
             placeholder="Amount"
             style={styles.input}
             value={amount}
             onChangeText={setAmount}
-            keyboardType="numeric"
-          />
-          <TextInput
-            placeholder="Paid amount (optional)"
-            style={styles.input}
-            value={paid}
-            onChangeText={setPaid}
             keyboardType="numeric"
           />
           <TouchableOpacity
@@ -158,21 +120,24 @@ export default function CreditModal({ visible, onClose, credit, onSave }: Props)
             style={styles.dateButton}
           >
             <Text style={styles.dateText}>
-              📅 Due: {dueDate.toLocaleDateString()} {dueDate.toLocaleTimeString()}
+              🕒 Timestamp: {timestamp.toLocaleString()}
             </Text>
           </TouchableOpacity>
           {showPicker && (
             <DateTimePicker
-              value={dueDate}
+              value={timestamp}
               mode="datetime"
               display={Platform.OS === 'ios' ? 'inline' : 'default'}
               onChange={(e, selected) => {
-                if (selected) setDueDate(selected);
+                if (selected) setTimestamp(selected);
                 setShowPicker(false);
               }}
             />
           )}
           <View style={styles.buttonContainer}>
+            <TouchableOpacity style={[styles.button, styles.delete]} onPress={onDelete}>
+              <Text style={styles.buttonText}>Delete</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={[styles.button, styles.cancel]} onPress={onClose}>
               <Text style={styles.buttonText}>Cancel</Text>
             </TouchableOpacity>
@@ -189,15 +154,15 @@ export default function CreditModal({ visible, onClose, credit, onSave }: Props)
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
-    padding: 16,
-  },
-  modalContent: {
-    backgroundColor: '#FFFDEB',
-    borderRadius: 16,
     padding: 24,
-    elevation: 8,
+  },
+  modal: {
+    backgroundColor: '#FFFBEB',
+    borderRadius: 16,
+    padding: 20,
+    elevation: 4,
     shadowColor: '#000',
     shadowOpacity: 0.2,
     shadowRadius: 10,
@@ -206,14 +171,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#D97706',
     textAlign: 'center',
     marginBottom: 16,
+    color: '#10B981',
   },
   input: {
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#FCD34D',
+    borderColor: '#10B981',
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -223,27 +188,28 @@ const styles = StyleSheet.create({
   picker: {
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#FCD34D',
+    borderColor: '#10B981',
     borderRadius: 10,
     marginBottom: 4,
   },
   dateButton: {
-    backgroundColor: '#FFD580',
+    backgroundColor: '#A7F3D0',
     borderRadius: 10,
     padding: 12,
     alignItems: 'center',
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#F4A000',
+    borderColor: '#10B981',
   },
   dateText: {
-    color: '#78350F',
+    color: '#065F46',
     fontWeight: '600',
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 8,
+    marginTop: 16,
   },
   button: {
     paddingVertical: 12,
@@ -254,12 +220,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
   },
   save: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: '#10B981',
+  },
+  delete: {
+    backgroundColor: '#EF4444',
   },
   buttonText: {
-    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontWeight: '600',
     fontSize: 16,
-    color: '#1F2937',
   },
   errorText: {
     color: '#EF4444',

@@ -1,69 +1,54 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
-  Modal,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    Modal,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
-type Expense = {
-  expenseId?: number;
-  type: string;
-  amount: number;
-  remarks: string;
-  timestamp: string;
-  userId: number;
-};
-
-type ExpensesModalProps = {
+type StockItem = { id?: string; name: string; quantity: number; unit: string };
+type Props = {
   visible: boolean;
   onClose: () => void;
-  expense: Expense | null;
-  onSave: (data: Omit<Expense, 'expenseId'>) => void;
+  onSave: (item: StockItem) => void;
+  item: StockItem | null;
 };
 
-export default function ExpensesModal({ visible, onClose, expense, onSave }: ExpensesModalProps) {
-  const [type, setType] = useState('');
-  const [amount, setAmount] = useState('');
-  const [remarks, setRemarks] = useState('');
-  const [userId] = useState(1); // Default userId (adjust for auth)
+export default function StockManagerModal({ visible, onClose, onSave, item }: Props) {
+  const [name, setName] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [unit, setUnit] = useState('pcs');
 
   useEffect(() => {
-    if (expense) {
-      setType(expense.type || '');
-      setAmount(expense.amount != null ? expense.amount.toString() : '');
-      setRemarks(expense.remarks || '');
+    if (item) {
+      setName(item.name);
+      setQuantity(item.quantity.toString());
+      setUnit(item.unit);
     } else {
-      setType('');
-      setAmount('');
-      setRemarks('');
+      setName('');
+      setQuantity('');
+      setUnit('pcs');
     }
-  }, [expense]);
+  }, [item, visible]);
 
-  const handleSave = () => {
-    if (!type.trim()) {
-      Alert.alert('Error', 'Expense type is required.');
+  const handleSubmit = () => {
+    if (!name.trim()) {
+      Alert.alert('Validation', 'Ingredient name is required.');
       return;
     }
-    if (!amount.trim() || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-      Alert.alert('Error', 'Valid amount is required.');
+    const qty = Number(quantity);
+    if (!quantity.trim() || isNaN(qty) || qty < 0) {
+      Alert.alert('Validation', 'Please provide a valid non-negative quantity.');
       return;
     }
-
-    const expenseData: Omit<Expense, 'expenseId'> = {
-      type: type.trim(),
-      amount: parseFloat(amount),
-      remarks: remarks.trim(),
-      timestamp: new Date().toISOString(),
-      userId,
-    };
-
-    console.log('Saving expense:', expenseData);
-    onSave(expenseData);
-    onClose();
+    if (!unit.trim()) {
+      Alert.alert('Validation', 'Unit is required.');
+      return;
+    }
+    onSave({ id: item?.id, name: name.trim(), quantity: qty, unit: unit.trim() });
   };
 
   if (!visible) return null;
@@ -72,32 +57,31 @@ export default function ExpensesModal({ visible, onClose, expense, onSave }: Exp
     <Modal animationType="slide" transparent visible={visible}>
       <View style={styles.overlay}>
         <View style={styles.modalContent}>
-          <Text style={styles.title}>{expense ? 'Edit Expense' : 'Add Expense'}</Text>
+          <Text style={styles.title}>{item ? 'Edit Ingredient' : 'Add Ingredient'}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Expense Type (e.g., Electrical Bill)"
-            value={type}
-            onChangeText={setType}
+            placeholder="Ingredient Name"
+            value={name}
+            onChangeText={setName}
           />
           <TextInput
             style={styles.input}
-            placeholder="Amount"
-            value={amount}
-            onChangeText={setAmount}
+            placeholder="Quantity"
             keyboardType="numeric"
+            value={quantity}
+            onChangeText={setQuantity}
           />
           <TextInput
             style={styles.input}
-            placeholder="Remarks (optional)"
-            value={remarks}
-            onChangeText={setRemarks}
-            multiline
+            placeholder="Unit (pcs, kg, etc.)"
+            value={unit}
+            onChangeText={setUnit}
           />
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={onClose}>
+            <TouchableOpacity style={[styles.buttons, styles.cancelButton]} onPress={onClose}>
               <Text style={styles.buttonText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleSave}>
+            <TouchableOpacity style={[styles.buttons, styles.saveButton]} onPress={handleSubmit}>
               <Text style={styles.buttonText}>Save</Text>
             </TouchableOpacity>
           </View>
@@ -150,7 +134,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     marginTop: 8,
   },
-  button: {
+  buttons: {
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 14,

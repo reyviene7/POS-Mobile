@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    Modal,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 type PaymentMethod = {
-  id?: string;
+  paymentMethodId?: number;
   name: string;
 };
 
@@ -18,27 +18,28 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   payment: PaymentMethod | null;
-  onSave: (method: PaymentMethod) => void;
+  onSave: (method: { name: string }) => void;
 };
 
 export default function PaymentModal({ visible, onClose, payment, onSave }: Props) {
   const [name, setName] = useState('');
 
   useEffect(() => {
+    console.log('Payment prop received:', payment);
     setName(payment?.name || '');
   }, [payment]);
 
   const handleSave = () => {
     if (!name.trim()) {
-      Alert.alert('Oops!', 'Payment method name is required.');
+      Alert.alert('Error', 'Payment method name is required.');
       return;
     }
 
-    onSave({
-      id: payment?.id,
-      name: name.trim(),
-    });
+    onSave({ name: name.trim() });
+    onClose();
   };
+
+  if (!visible) return null;
 
   return (
     <Modal transparent visible={visible} animationType="slide">
@@ -47,14 +48,12 @@ export default function PaymentModal({ visible, onClose, payment, onSave }: Prop
           <Text style={styles.header}>
             {payment ? 'Edit Payment Method' : 'New Payment Method'}
           </Text>
-
           <TextInput
-            placeholder="e.g. Cash, GCash, Maya"
+            placeholder="e.g., Cash, GCash, Maya"
             style={styles.input}
             value={name}
             onChangeText={setName}
           />
-
           <View style={styles.actions}>
             <TouchableOpacity style={styles.cancel} onPress={onClose}>
               <Text style={styles.cancelText}>Cancel</Text>
@@ -77,26 +76,35 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modal: {
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#FFFDEB',
     borderRadius: 20,
     padding: 20,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
   },
   header: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '700',
     color: '#D97706',
-    marginBottom: 16,
     textAlign: 'center',
+    marginBottom: 20,
   },
   input: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#FBBF24',
-    borderRadius: 10,
+    borderColor: '#FCD34D',
+    borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
     marginBottom: 20,
+    shadowColor: '#FBBF24',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
   },
   actions: {
     flexDirection: 'row',
@@ -104,23 +112,27 @@ const styles = StyleSheet.create({
   },
   cancel: {
     backgroundColor: '#E5E7EB',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 14,
     marginRight: 10,
   },
   cancelText: {
     color: '#374151',
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 16,
   },
   save: {
-    backgroundColor: '#F59E0B',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 10,
+    backgroundColor: '#FCD34D',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
   },
   saveText: {
-    color: '#FFF',
+    color: '#92400E',
     fontWeight: '700',
+    fontSize: 16,
   },
 });

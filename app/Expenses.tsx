@@ -1,42 +1,83 @@
-import React, { useState } from 'react';
+import DeleteModal from '@/src/components/DeleteModal';
+import React, { useEffect, useState } from 'react';
 import {
-  Alert,
+  ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
-import { v4 as uuidv4 } from 'uuid';
+import Toast from 'react-native-toast-message';
+import api from '../api';
 import ExpensesModal from '../src/components/ExpensesModal';
 
 type Expense = {
-  id: string;
+  expenseId: number;
   type: string;
   amount: number;
   remarks: string;
   timestamp: string;
+  userId: number;
 };
 
 export default function Expenses() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
-  const [expenses, setExpenses] = useState<Expense[]>([
-    {
-      id: '1',
-      type: 'Electrical Bill',
-      amount: 3000,
-      remarks: 'Monthly Meralco payment',
-      timestamp: new Date().toISOString(),
-    },
-    {
-      id: '2',
-      type: 'Water Bill',
-      amount: 1200,
-      remarks: 'Manila Water monthly',
-      timestamp: new Date().toISOString(),
-    },
-  ]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState<number | null>(null);
+  const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
+
+  useEffect(() => {
+    fetchExpenses();
+  }, []);
+
+  const fetchExpenses = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.get('/expenses');
+      const fetchedExpenses: Expense[] = response.data.map((exp: any) => ({
+        expenseId: exp.expenseId,
+        type: exp.type,
+        amount: parseFloat(exp.amount), // Convert BigDecimal to number
+        remarks: exp.remarks || '',
+        timestamp: exp.timestamp,
+        userId: exp.user?.userId || 1, // Default userId if missing
+      }));
+      console.log('Fetched expenses:', fetchedExpenses);
+      setExpenses(fetchedExpenses);
+      if (!hasShownInitialToast) {
+        Toast.show({
+          type: 'success',
+          text1: '🥪 Freshly Baked!',
+          text2: 'Expenses loaded successfully!',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
+        setHasShownInitialToast(true);
+      }
+    } catch (err: any) {
+      console.error('Error fetching expenses:', err.message, err.response?.data);
+      setError('Failed to load expenses. Please try again.');
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oh No!',
+        text2: 'Failed to load expenses.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const openAddModal = () => {
     setSelectedExpense(null);
@@ -44,50 +85,122 @@ export default function Expenses() {
   };
 
   const openEditModal = (expense: Expense) => {
+    console.log('Editing expense:', expense);
     setSelectedExpense(expense);
     setModalVisible(true);
   };
 
-  const handleSave = (data: Expense) => {
-    if (data.id) {
-      // Update existing
-      setExpenses((prev) =>
-        prev.map((e) => (e.id === data.id ? { ...data } : e))
-      );
-    } else {
-      // Add new
-      setExpenses((prev) => [
-        ...prev,
-        { ...data, id: uuidv4(), timestamp: new Date().toISOString() },
-      ]);
+  const handleSave = async (data: Omit<Expense, 'expenseId'>) => {
+    setLoading(true);
+    try {
+      const payload = {
+        type: data.type,
+        amount: data.amount,
+        remarks: data.remarks,
+        timestamp: data.timestamp || new Date().toISOString(),
+        userId: data.userId || 1, // Default userId
+      };
+      if (selectedExpense) {
+        // Update existing
+        const response = await api.put(`/expenses/${selectedExpense.expenseId}`, payload);
+        console.log('Updated expense:', response.data);
+        Toast.show({
+          type: 'success',
+          text1: '🥪 Yum!',
+          text2: 'Expense updated successfully!',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
+      } else {
+        // Add new
+        const response = await api.post('/expenses', payload);
+        console.log('Created expense:', response.data);
+        Toast.show({
+          type: 'success',
+          text1: '🥪 Yum!',
+          text2: 'Expense created successfully!',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
+      }
+      fetchExpenses();
+      setModalVisible(false);
+    } catch (err: any) {
+      console.error('Error saving expense:', err.message, err.response?.data);
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oops!',
+        text2: 'Failed to save expense.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDelete = (id: string) => {
-    Alert.alert('Delete Expense', 'Are you sure you want to delete this?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          setExpenses((prev) => prev.filter((exp) => exp.id !== id));
-        },
-      },
-    ]);
+  const handleDelete = (id: number) => {
+    setExpenseToDelete(id);
+    setDeleteConfirmVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!expenseToDelete) return;
+    setDeleteConfirmVisible(false);
+    setLoading(true);
+    try {
+      await api.delete(`/expenses/${expenseToDelete}`);
+      console.log('Deleted expense:', expenseToDelete);
+      Toast.show({
+        type: 'success',
+        text1: '🥪 Yum!',
+        text2: 'Expense removed successfully!',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+      fetchExpenses();
+    } catch (err: any) {
+      console.error('Error deleting expense:', err.message, err.response?.data);
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oops!',
+        text2: 'Failed to delete expense.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+    } finally {
+      setLoading(false);
+      setExpenseToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmVisible(false);
+    setExpenseToDelete(null);
   };
 
   const renderItem = ({ item }: { item: Expense }) => (
     <TouchableOpacity style={styles.card} onPress={() => openEditModal(item)}>
       <View style={{ flex: 1 }}>
         <Text style={styles.type}>{item.type}</Text>
-        <Text style={styles.remarks}>{item.remarks}</Text>
+        <Text style={styles.remarks}>{item.remarks || 'No remarks'}</Text>
         <Text style={styles.datetime}>
           {new Date(item.timestamp).toLocaleString()}
         </Text>
       </View>
       <View style={styles.side}>
         <Text style={styles.amount}>₱{item.amount.toFixed(2)}</Text>
-        <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item.id)}>
+        <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item.expenseId)}>
           <Text style={styles.deleteText}>🗑</Text>
         </TouchableOpacity>
       </View>
@@ -96,23 +209,32 @@ export default function Expenses() {
 
   return (
     <View style={styles.container}>
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#FBBF24" />
+        </View>
+      )}
+      {error && <Text style={styles.errorText}>{error}</Text>}
       <Text style={styles.title}>💸 Expenses</Text>
       <Text style={styles.subtitle}>Track and manage shop expenses</Text>
-
       <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
         <Text style={styles.addButtonText}>+ Add New Expense</Text>
       </TouchableOpacity>
-
+      <DeleteModal
+        visible={deleteConfirmVisible}
+        itemType="expense"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
       <FlatList
         data={expenses}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.expenseId.toString()}
         renderItem={renderItem}
         contentContainerStyle={{ paddingTop: 16 }}
         ListEmptyComponent={
           <Text style={styles.emptyText}>No expenses recorded yet.</Text>
         }
       />
-
       <ExpensesModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
@@ -126,7 +248,7 @@ export default function Expenses() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FEFCE8',
+    backgroundColor: '#FFFDEB',
     padding: 20,
   },
   title: {
@@ -143,15 +265,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   addButton: {
-    backgroundColor: '#FBBF24',
-    paddingVertical: 14,
+    backgroundColor: '#FCD34D',
     borderRadius: 12,
-    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 30,
+    alignSelf: 'center',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
   },
   addButtonText: {
-    color: '#1F2937',
-    fontWeight: 'bold',
+    color: '#92400E',
     fontSize: 16,
+    fontWeight: '700',
   },
   card: {
     flexDirection: 'row',
@@ -198,5 +324,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 40,
     color: '#9CA3AF',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#EF4444',
+    textAlign: 'center',
+    marginBottom: 16,
+    fontSize: 16,
   },
 });
