@@ -34,6 +34,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFBEB', // light egg shell
     padding: 24,
+    paddingTop: 48,
   },
   title: {
     fontSize: 28,
