@@ -397,8 +397,8 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     position: 'absolute',
-    top: 12,
-    right: 12,
+    top: 24,
+    right: 2,
     padding: 4,
   },
   floatingButton: {
