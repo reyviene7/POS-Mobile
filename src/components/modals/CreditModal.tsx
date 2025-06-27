@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import api from '../../api';
+import api from '../../../api';
 
 type CreditRecord = {
   creditId?: number;

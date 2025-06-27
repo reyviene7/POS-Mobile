@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import api from '../../api';
+import api from '../../../api';
 
 type CategoryModalProps = {
   visible: boolean;

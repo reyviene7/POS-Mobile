@@ -1,4 +1,4 @@
-import ProductModal from '@/src/components/ProductModal';
+import ProductModal from '@/src/components/modals/ProductModal';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import React, { useEffect, useState } from 'react';
