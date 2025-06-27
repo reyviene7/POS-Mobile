@@ -52,7 +52,6 @@ export default function SalesHistory() {
     setError(null);
     try {
       const response = await api.get("/sales-history/detailed");
-      console.log("Raw backend response:", response.data);
       const data: SalesHistoryDetailed[] = response.data.map((item: any) => ({
         orderId: item.order_id,
         productName: item.product_name,
@@ -71,7 +70,7 @@ export default function SalesHistory() {
             acc[item.orderId] = {
               orderId: item.orderId,
               timestamp: item.timestamp,
-              totalPrice: 0, // Initialize to 0, will sum item costs
+              totalPrice: 0, 
               paymentMethod: item.paymentMethod,
               items: [],
             };
@@ -86,15 +85,12 @@ export default function SalesHistory() {
         }, {})
       );
 
-      console.log("Grouped sales:", groupedSales);
       setSales(groupedSales);
       setFilteredSales(groupedSales);
 
       const total = groupedSales.reduce((sum, sale) => sum + sale.totalPrice, 0);
       setTotalSales(total);
     } catch (err: any) {
-      console.error("Error fetching sales:", err.message, err.response?.data);
-      setError("Failed to fetch sales history. Please try again.");
       Toast.show({
         type: "error",
         text1: "Error",
@@ -149,7 +145,6 @@ export default function SalesHistory() {
     setLoading(true);
     try {
       await api.delete(`/sales-history/${orderId}`);
-      console.log("Deleted sale:", orderId);
       Toast.show({
         type: "success",
         text1: "Success",
@@ -161,7 +156,6 @@ export default function SalesHistory() {
       fetchSales();
       setModalVisible(false);
     } catch (err: any) {
-      console.error("Error deleting sale:", err.message, err.response?.data);
       Toast.show({
         type: "error",
         text1: "Error",
