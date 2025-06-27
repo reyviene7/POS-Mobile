@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import api from '../api';
-import CreditModal from '../src/components/CreditModal';
-import DeleteModal from '../src/components/DeleteModal';
+import CreditModal from '../src/components/modals/CreditModal';
+import DeleteModal from '../src/components/modals/DeleteModal';
 
 type CreditRecord = {
   creditId: number;

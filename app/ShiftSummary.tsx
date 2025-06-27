@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import api from '../api';
-import OrderDetailsModal from '../src/components/OrderDetailsModal';
+import OrderDetailsModal from '../src/components/modals/OrderDetailsModal';
 
 interface TodaySalesDTO {
   orderId: string;

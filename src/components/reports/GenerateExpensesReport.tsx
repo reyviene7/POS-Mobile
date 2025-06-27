@@ -1,28 +1,78 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Alert } from 'react-native';
-import salesData from '../scripts/sales_history.json';
+import Toast from 'react-native-toast-message';
+import api from '../../../api';
 
-interface SaleItem {
-  name: string;
-  quantity: number;
-  price: number;
-}
-
-interface Sale {
-  orderId: string;
+interface Expense {
+  expenseId: number;
   timestamp: string;
-  total: number;
-  items: SaleItem[];
+  expenseType: string;
+  amount: number;
+  remarks: string;
+  recordedBy: string;
 }
 
-export const generateSalesHistoryPDF = async () => {
+interface ExpensesReportView {
+  expenseId: number;
+  timestamp: string;
+  expenseType: string;
+  amount: number;
+  remarks: string;
+  firstname: string;
+  lastname: string;
+}
+
+export const generateExpensesReportPDF = async () => {
+  const fetchExpensesReport = async (): Promise<Expense[]> => {
+    try {
+      const response = await api.get('/expenses/report');
+      console.log('Expenses report response:', response.data);
+      const expenses: ExpensesReportView[] = response.data;
+
+      // Map to Expense objects
+      const expensesData = expenses.map((item) => ({
+        expenseId: item.expenseId,
+        timestamp: item.timestamp,
+        expenseType: item.expenseType,
+        amount: item.amount,
+        remarks: item.remarks,
+        recordedBy: `${item.firstname} ${item.lastname}`,
+      }));
+
+      return expensesData;
+    } catch (err: any) {
+      console.error('Error fetching expenses report:', err.message, err.response?.data);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to load expenses report.',
+        position: 'top',
+        visibilityTime: 2500,
+        topOffset: 40,
+      });
+      throw err;
+    }
+  };
+
   try {
-    const totalSales = salesData.sales.reduce((sum, sale) => sum + sale.total, 0);
-    const totalItems = salesData.sales.reduce(
-      (sum, sale) => sum + sale.items.reduce((itemSum, item) => itemSum + item.quantity, 0),
-      0
-    );
+    const expensesData = await fetchExpensesReport();
+    if (expensesData.length === 0) {
+      Toast.show({
+        type: 'error',
+        text1: 'No Data',
+        text2: 'No expenses available.',
+        position: 'top',
+        visibilityTime: 2500,
+        topOffset: 40,
+      });
+      throw new Error('No expenses available.');
+    }
+
+    const totalExpenses = expensesData.reduce((sum, expense) => sum + (expense.amount || 0), 0);
+    const totalTransactions = expensesData.length;
+    const periodStart = new Date(expensesData[0].timestamp).toLocaleDateString();
+    const periodEnd = new Date(expensesData[expensesData.length - 1].timestamp).toLocaleDateString();
 
     const logoUrl = 'https://res.cloudinary.com/dzwjjpvdb/image/upload/w_180,c_scale/v1750505959/EggCited/ixxau4ellammx0drebgo.png';
 
@@ -31,7 +81,7 @@ export const generateSalesHistoryPDF = async () => {
         <head>
           <style>
             @page {
-              size: 595pt 842pt; /* A4: 8.27in x 11.7in at 72dpi */
+              size: 595pt 842pt;
               background-color: #FFF7ED;
               margin: 40px;
             }
@@ -39,7 +89,7 @@ export const generateSalesHistoryPDF = async () => {
               font-family: 'Helvetica Neue', Arial, sans-serif;
               color: #333;
               background-color: #FFF7ED;
-              margin: 0; /* Reset body margin, rely on @page */
+              margin: 0;
               padding: 40px;
               box-sizing: border-box;
             }
@@ -107,7 +157,7 @@ export const generateSalesHistoryPDF = async () => {
               background: #FFFFFF;
             }
             tr {
-              page-break-inside: avoid; /* Prevent row splitting */
+              page-break-inside: avoid;
             }
             .total {
               font-weight: bold;
@@ -131,10 +181,10 @@ export const generateSalesHistoryPDF = async () => {
               tr { page-break-inside: avoid; page-break-after: auto; }
               thead { display: table-header-group; }
               .subsequent-header {
-                display: block; /* Show on new pages */
+                display: block;
               }
               .header {
-                display: none; /* Hide original header after first page */
+                display: none;
               }
             }
           </style>
@@ -142,53 +192,49 @@ export const generateSalesHistoryPDF = async () => {
         <body>
           <div class="header">
             <img src="${logoUrl}" alt="EggCited Logo" class="logo" />
-            <h1 class="title">Sales History Report</h1>
+            <h1 class="title">Expenses Report</h1>
             <p class="subtitle">Generated on ${new Date().toLocaleDateString()}</p>
           </div>
           <div class="subsequent-header">
             <img src="${logoUrl}" alt="EggCited Logo" class="logo" />
-            <h1 class="title">Sales History Report</h1>
+            <h1 class="title">Expenses Report</h1>
             <p class="subtitle">Generated on ${new Date().toLocaleDateString()}</p>
           </div>
           <div class="summary">
-            <p><strong>Total Sales:</strong> ₱${totalSales.toFixed(2)}</p>
-            <p><strong>Total Items Sold:</strong> ${totalItems}</p>
-            <p><strong>Period:</strong> ${new Date(salesData.sales[0].timestamp).toLocaleDateString()} - 
-              ${new Date(salesData.sales[salesData.sales.length - 1].timestamp).toLocaleDateString()}</p>
+            <p><strong>Total Expenses:</strong> ₱${totalExpenses.toFixed(2)}</p>
+            <p><strong>Total Transactions:</strong> ${totalTransactions}</p>
+            <p><strong>Period:</strong> ${periodStart}${periodStart === periodEnd ? '' : ` - ${periodEnd}`}</p>
           </div>
           <table class="table">
             <thead>
               <tr>
-                <th>Order ID</th>
+                <th>Expense ID</th>
                 <th>Date & Time</th>
-                <th>Items</th>
-                <th>Total (₱)</th>
+                <th>Type</th>
+                <th>Amount (₱)</th>
+                <th>Remarks</th>
+                <th>Recorded By</th>
               </tr>
             </thead>
             <tbody>
-              ${salesData.sales
+              ${expensesData
                 .map(
-                  (sale: Sale) => `
+                  (expense: Expense) => `
                     <tr>
-                      <td>${sale.orderId}</td>
-                      <td>${new Date(sale.timestamp).toLocaleString()}</td>
-                      <td>
-                        ${sale.items
-                          .map(
-                            (item: SaleItem) =>
-                              `${item.name} (Qty: ${item.quantity} @ ₱${item.price.toFixed(2)})`
-                          )
-                          .join('<br>')}
-                      </td>
-                      <td>₱${sale.total.toFixed(2)}</td>
+                      <td>${expense.expenseId}</td>
+                      <td>${new Date(expense.timestamp).toLocaleString()}</td>
+                      <td>${expense.expenseType}</td>
+                      <td>₱${expense.amount.toFixed(2)}</td>
+                      <td>${expense.remarks}</td>
+                      <td>${expense.recordedBy}</td>
                     </tr>
                   `
                 )
                 .join('')}
             </tbody>
           </table>
-          <p class="total">Grand Total: ₱${totalSales.toFixed(2)}</p>
-          <p class="footer">Generated by ${salesData.store} POS System | EggCited Korean Eggdrop Sandwiches</p>
+          <p class="total">Grand Total: ₱${totalExpenses.toFixed(2)}</p>
+          <p class="footer">Generated by EggCited POS System | EggCited Korean Eggdrop Sandwiches</p>
         </body>
       </html>
     `;
@@ -200,7 +246,15 @@ export const generateSalesHistoryPDF = async () => {
       Alert.alert('Success', 'PDF generated and saved to device!');
     }
   } catch (error: any) {
-    console.error('Error generating PDF:', error);
-    throw new Error(error.message.includes('image') ? 'Failed to load logo from Cloudinary. Please check the image URL or network.' : 'Failed to generate Sales History Report.');
+    console.error('Error generating expenses report:', error);
+    Toast.show({
+      type: 'error',
+      text1: 'Error',
+      text2: error.message.includes('image') ? 'Failed to load logo from Cloudinary.' : 'Failed to generate Expenses Report.',
+      position: 'top',
+      visibilityTime: 2500,
+      topOffset: 40,
+    });
+    throw error;
   }
 };

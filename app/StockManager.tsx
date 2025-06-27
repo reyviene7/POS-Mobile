@@ -1,4 +1,4 @@
-import DeleteModal from '@/src/components/DeleteModal';
+import DeleteModal from '@/src/components/modals/DeleteModal';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import api from '../api';
-import StockManagerModal from '../src/components/StockManagerModal';
+import StockManagerModal from '../src/components/modals/StockManagerModal';
 
 type StockItem = { id: string; name: string; quantity: number; unit: string };
 

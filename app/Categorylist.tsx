@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import api from '../api';
-import CategoryModal from '../src/components/CategoryModal';
+import CategoryModal from '../src/components/modals/CategoryModal';
 
 type CategoryItem = {
   id: number;
@@ -242,6 +242,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF9C3',
     padding: 16,
     marginBottom: 12,
+    marginHorizontal: 8,
     borderRadius: 16,
     elevation: 3,
     shadowColor: '#000',
@@ -271,7 +272,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   deleteButton: {
-    justifyContent: 'flex-end',
+    right: -90,
     padding: 8,
   },
   fab: {

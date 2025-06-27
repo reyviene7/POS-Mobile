@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import api from '../api';
-import CashModal from '../src/components/CashModal';
-import DeleteModal from '../src/components/DeleteModal';
+import CashModal from '../src/components/modals/CashModal';
+import DeleteModal from '../src/components/modals/DeleteModal';
 
 type CashTransaction = {
   id: string;

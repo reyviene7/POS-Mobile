@@ -14,8 +14,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import api from '../../api';
-import { uploadToCloudinary } from '../../CloudinaryConfig';
+import api from '../../../api';
+import { uploadToCloudinary } from '../../../CloudinaryConfig';
 
 type ProductModalProps = {
   visible: boolean;

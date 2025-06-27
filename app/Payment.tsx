@@ -1,4 +1,4 @@
-import DeleteModal from '@/src/components/DeleteModal';
+import DeleteModal from '@/src/components/modals/DeleteModal';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import api from '../api';
-import PaymentModal from '../src/components/PaymentModal';
+import PaymentModal from '../src/components/modals/PaymentModal';
 
 type PaymentMethod = {
   paymentMethodId: number;

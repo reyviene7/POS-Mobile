@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import Toast from "react-native-toast-message";
 import api from "../api";
-import OrderDetailsModal from "../src/components/OrderDetailsModal";
+import OrderDetailsModal from "../src/components/modals/OrderDetailsModal";
 
 interface SalesHistoryDetailed {
   orderId: string;

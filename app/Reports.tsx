@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { generateSalesHistoryPDF } from '../src/components/GenerateSalesReport';
+import { generateCashReportPDF } from '../src/components/reports/GenerateCashReport';
+import { generateCreditReportPDF } from '../src/components/reports/GenerateCreditReport';
+import { generateExpensesReportPDF } from '../src/components/reports/GenerateExpensesReport';
+import { generateSalesHistoryPDF } from '../src/components/reports/GenerateSalesReport';
+import { generateShiftReportPDF } from '../src/components/reports/GenerateShiftReport';
 
 export default function Reports() {
   const [loading, setLoading] = useState<string | null>(null);
@@ -27,6 +31,14 @@ const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
     try {
       if (type === 'Sales History') {
         await generateSalesHistoryPDF();
+      } else if (type === 'Shift Summary') {
+        await generateShiftReportPDF();
+      } else if (type === 'Cash Transactions') {
+        await generateCashReportPDF();
+      } else if (type === 'Credit Transactions') {
+        await generateCreditReportPDF();
+      } else if (type === 'Expenses') {
+        await generateExpensesReportPDF();
       } else {
         Toast.show({
           type: 'success',
@@ -38,6 +50,15 @@ const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
           topOffset: 40,
         });
       }
+      Toast.show({
+        type: 'success',
+        text1: '🥪 Yum!',
+        text2: `${type} Report generated successfully!`,
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     } catch (error: any) {
       Toast.show({
         type: 'error',
