@@ -151,9 +151,7 @@ export default function Credit() {
       };
       console.log('Sending payload:', payload);
       if (selectedCredit) {
-        // Update existing
         const response = await api.put(`/credit-transactions/${selectedCredit.creditId}`, payload);
-        console.log('Updated credit:', response.data);
         Toast.show({
           type: 'success',
           text1: '🥪 Yum!',
@@ -164,9 +162,7 @@ export default function Credit() {
           topOffset: 40,
         });
       } else {
-        // Add new
         const response = await api.post('/credit-transactions', payload);
-        console.log('Created credit:', response.data);
         Toast.show({
           type: 'success',
           text1: '🥪 Yum!',
@@ -179,8 +175,7 @@ export default function Credit() {
       }
       fetchCredits();
       setModalVisible(false);
-    } catch (err: any) {
-      console.error('Error saving credit:', err.message, err.response?.data);
+    } catch {
       Toast.show({
         type: 'error',
         text1: '🍞😣 Oops!',

@@ -39,14 +39,12 @@ export default function Cash() {
     setError(null);
     try {
       const response = await api.get('/cash-transactions');
-      console.log('Raw backend response:', response.data);
       const fetchedTransactions: CashTransaction[] = response.data.map((transaction: any) => ({
         id: transaction.cashId.toString(),
         orderId: transaction.salesHistory?.orderId || transaction.orderId || '',
         amount: parseFloat(transaction.amount) || 0,
         timestamp: transaction.timestamp ? new Date(transaction.timestamp).toISOString() : '',
       }));
-      console.log('Fetched transactions:', fetchedTransactions);
       setTransactions(fetchedTransactions);
       if (!hasShownInitialToast) {
         Toast.show({
@@ -60,9 +58,7 @@ export default function Cash() {
         });
         setHasShownInitialToast(true);
       }
-    } catch (err: any) {
-      console.error('Error fetching transactions:', err.message, err.response?.data);
-      setError('Failed to load cash transactions. Please try again.');
+    } catch {
       Toast.show({
         type: 'error',
         text1: '🍞😣 Oh No!',
@@ -83,7 +79,6 @@ export default function Cash() {
   };
 
   const handleEdit = (transaction: CashTransaction) => {
-    console.log('Editing transaction:', transaction);
     setSelectedTransaction(transaction);
     setModalVisible(true);
   };
@@ -94,7 +89,6 @@ export default function Cash() {
     setLoading(true);
     try {
       await api.delete(`/cash-transactions/${transactionToDelete}`);
-      console.log('Deleted transaction:', transactionToDelete);
       Toast.show({
         type: 'success',
         text1: '🥪 Yum!',
@@ -105,8 +99,7 @@ export default function Cash() {
         topOffset: 40,
       });
       fetchTransactions();
-    } catch (err: any) {
-      console.error('Error deleting transaction:', err.message, err.response?.data);
+    } catch {
       Toast.show({
         type: 'error',
         text1: '🍞😣 Oops!',
@@ -136,9 +129,7 @@ export default function Cash() {
         amount: transaction.amount,
         timestamp: transaction.timestamp || new Date().toISOString(),
       };
-      console.log('Sending payload:', payload);
       const response = await api.put(`/cash-transactions/${selectedTransaction.id}`, payload);
-      console.log('Updated transaction:', response.data);
       Toast.show({
         type: 'success',
         text1: '🥪 Yum!',
@@ -150,8 +141,7 @@ export default function Cash() {
       });
       fetchTransactions();
       setModalVisible(false);
-    } catch (err: any) {
-      console.error('Error saving transaction:', err.message, err.response?.data);
+    } catch {
       Toast.show({
         type: 'error',
         text1: '🍞😣 Oops!',

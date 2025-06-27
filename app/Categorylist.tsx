@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   SafeAreaView,
   StyleSheet,
@@ -10,8 +9,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import api from '../api';
 import CategoryModal from '../src/components/modals/CategoryModal';
+import DeleteModal from '../src/components/modals/DeleteModal';
 
 type CategoryItem = {
   id: number;
@@ -22,9 +23,12 @@ type CategoryItem = {
 export default function CategoryList() {
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
+  const [editingCategory, setEditingCategory] = useState<CategoryItem | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     fetchCategories();
@@ -34,23 +38,26 @@ export default function CategoryList() {
     setLoading(true);
     setError(null);
     try {
-      // Fetch categories with add-ons
       const categoriesResponse = await api.get('/categories/with-addons');
       const categoriesData = categoriesResponse.data;
       console.log('Fetched categories:', categoriesData);
 
-      // Fetch products to calculate productCount
       let products = [];
       try {
         const productsResponse = await api.get('/products/with-price');
         products = productsResponse.data;
-        console.log('Fetched products:', products);
-      } catch (productErr) {
-        console.warn('Error fetching products:', productErr);
-        // Continue without products if endpoint fails
+      } catch {
+        Toast.show({
+          type: 'error',
+          text1: '🍞😣 Oh No!',
+          text2: 'Failed to load products.',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
       }
 
-      // Group add-ons by categoryId and calculate productCount
       const categoryMap = new Map<number, { name: string; addons: string[] }>();
       categoriesData.forEach((item: any) => {
         const categoryId = item.categoryId;
@@ -65,7 +72,6 @@ export default function CategoryList() {
         }
       });
 
-      // Calculate productCount per category
       const categoryItems: CategoryItem[] = Array.from(categoryMap.entries()).map(
         ([id, { name, addons }]) => ({
           id,
@@ -75,18 +81,36 @@ export default function CategoryList() {
         })
       );
 
+      if (!hasShownInitialToast) {
+        Toast.show({
+          type: 'success',
+          text1: '🥪 Freshly Baked!',
+          text2: 'Categories loaded successfully!',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
+        setHasShownInitialToast(true);
+      }
       setCategories(categoryItems);
-    } catch (err: any) {
-      console.error('Error fetching categories:', err.message, err.response?.data);
-      setError('Failed to load categories. Please check the server logs for details.');
-      Alert.alert('Error', 'Failed to load categories. Please try again.');
+    } catch {
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oh No!',
+        text2: 'Failed to load category list.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleAdd = () => {
-    setEditingCategory(null);
+    setEditingCategory(undefined);
     setModalVisible(true);
   };
 
@@ -96,26 +120,41 @@ export default function CategoryList() {
   };
 
   const handleDelete = (id: number) => {
-    Alert.alert('Confirm Delete', 'Are you sure you want to delete this category?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          setLoading(true);
-          try {
-            await api.delete(`/categories/${id}`);
-            Alert.alert('Success', 'Category deleted successfully!');
-            fetchCategories();
-          } catch (err) {
-            console.error('Error deleting category:', err);
-            Alert.alert('Error', 'Failed to delete category. Please try again.');
-          } finally {
-            setLoading(false);
-          }
-        },
-      },
-    ]);
+    setCategoryToDelete(id);
+    setDeleteModalVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    if (categoryToDelete === null) return;
+
+    setLoading(true);
+    setDeleteModalVisible(false);
+    try {
+      await api.delete(`/categories/${categoryToDelete}`);
+      Toast.show({
+        type: 'success',
+        text1: '🥪 Yum!',
+        text2: 'Category removed successfully!',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+      fetchCategories();
+    } catch {
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oops!',
+        text2: 'Failed to delete category.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+    } finally {
+      setLoading(false);
+      setCategoryToDelete(null);
+    }
   };
 
   const handleSaveCategory = async (updated: { name: string; addonIds: number[] }) => {
@@ -123,20 +162,17 @@ export default function CategoryList() {
     try {
       let categoryId: number;
       if (editingCategory) {
-        // Update existing category
         const response = await api.put(`/categories/${editingCategory.id}`, {
           categoryName: updated.name,
         });
         categoryId = editingCategory.id;
       } else {
-        // Create new category
         const response = await api.post('/categories', {
           categoryName: updated.name,
         });
         categoryId = response.data.categoryId;
       }
 
-      // Fetch existing category add-ons
       const existingAddonsResponse = await api.get('/category-addons');
       const existingAddons = existingAddonsResponse.data.filter(
         (ca: any) => ca.category.categoryId === categoryId
@@ -154,13 +190,27 @@ export default function CategoryList() {
           addon: { addonId },
         });
       }
-
-      Alert.alert('Success', `Category ${editingCategory ? 'updated' : 'created'} successfully!`);
+      Toast.show({
+        type: 'success',
+        text1: '🥪 Yum!',
+        text2: 'Category saved successfully!',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
       fetchCategories();
       setModalVisible(false);
-    } catch (err) {
-      console.error('Error saving category:', err);
-      Alert.alert('Error', 'Failed to save category. Please try again.');
+    } catch {
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oops!',
+        text2: 'Failed to save category.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     } finally {
       setLoading(false);
     }
@@ -180,7 +230,7 @@ export default function CategoryList() {
         style={styles.deleteButton}
         onPress={() => handleDelete(item.id)}
       >
-        <Ionicons name="trash" size={20} color="#EF4444" />
+        <Ionicons name="trash-outline" size={20} color="#EF4444" />
       </TouchableOpacity>
     </View>
   );
@@ -192,8 +242,10 @@ export default function CategoryList() {
           <ActivityIndicator size="large" color="#F59E0B" />
         </View>
       )}
-      {error && <Text style={styles.errorText}>{error}</Text>}
-      <Text style={styles.title}>Category List</Text>
+      <Text style={styles.title}>🥙 Flavor Files</Text>
+      <Text style={styles.subtitle}>
+        Craft your sandwich story with tasty categories!
+      </Text>
       <FlatList
         data={categories}
         keyExtractor={(item) => item.id.toString()}
@@ -209,6 +261,15 @@ export default function CategoryList() {
         onSave={handleSaveCategory}
         category={editingCategory}
       />
+      <DeleteModal
+        visible={deleteModalVisible}
+        itemType="category"
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          setDeleteModalVisible(false);
+          setCategoryToDelete(null);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -218,6 +279,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: '#FFFBEB',
+    paddingTop: 48,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -232,11 +294,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#78350F',
-    marginBottom: 16,
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#F59E0B',
     textAlign: 'center',
+    marginBottom: 6,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#7C3AED',
+    textAlign: 'center',
+    marginBottom: 36,
   },
   card: {
     backgroundColor: '#FEF9C3',
@@ -261,10 +329,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1F2937',
     marginBottom: 4,
-  },
-  categoryDetails: {
-    fontSize: 14,
-    color: '#4B5563',
   },
   categoryAddons: {
     fontSize: 13,
