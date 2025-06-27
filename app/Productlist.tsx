@@ -4,17 +4,20 @@ import { Picker } from '@react-native-picker/picker';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   FlatList,
   Image,
+  ImageSourcePropType,
   SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import api from '../api';
+import { uploadToCloudinary } from '../CloudinaryConfig';
+import DeleteModal from '../src/components/modals/DeleteModal';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -22,11 +25,11 @@ type ProductItem = {
   id: string;
   name: string;
   price: number;
-  size?: string;
+  size?: string | null;
   categoryId: number;
-  flavorName?: string;
-  image?: string;
-  categoryName?: string;
+  flavorName?: string | null;
+  image?: string | null;
+  categoryName?: string | null;
 };
 
 export default function ProductList() {
@@ -37,6 +40,11 @@ export default function ProductList() {
   const [isModalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
+
+  const defaultImage = 'https://res.cloudinary.com/dzwjjpvdb/image/upload/v1750703171/EggCited/duaybsrpbbbbioafm3yo.jpg';
 
   useEffect(() => {
     fetchProducts();
@@ -48,55 +56,86 @@ export default function ProductList() {
     try {
       const response = await api.get('/products/with-price');
       const apiProducts = response.data;
-      console.log('Fetched products:', apiProducts); // Debug duplicates
 
-      // Ensure unique products by ID
+      if (!Array.isArray(apiProducts)) {
+        throw new Error('API response is not an array');
+      }
+
       const uniqueProducts = Array.from(
         new Map(apiProducts.map((product: any) => [product.productId, product])).values()
       );
 
       const mappedProducts: ProductItem[] = uniqueProducts.map((product: any) => ({
-        id: product.productId.toString(),
-        name: product.productName,
-        price: parseFloat(product.price),
-        size: product.size || undefined,
-        categoryId: product.categoryId,
-        categoryName: product.categoryName,
-        flavorName: product.flavorName || undefined,
-        image: product.image || 'https://res.cloudinary.com/dzwjjpvdb/image/upload/v1750703171/EggCited/duaybsrpbbbbioafm3yo.jpg',
+        id: product.productId?.toString() || '',
+        name: product.productName || 'Unknown Product',
+        price: Number(product.price) || 0,
+        size: product.size || null,
+        categoryId: product.categoryId || 0,
+        categoryName: product.categoryName || 'Uncategorized',
+        flavorName: product.flavorName || null,
+        image: product.image || null,
       }));
 
       setProducts(mappedProducts);
-    } catch (err) {
-      console.error('Error fetching products:', err);
-      setError('Failed to load products. Please try again.');
-      Alert.alert('Error', 'Failed to load products. Please try again.');
+      if (!hasShownInitialToast) {
+        Toast.show({
+          type: 'success',
+          text1: '🥪 Freshly Baked!',
+          text2: 'Products loaded successfully!',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
+        setHasShownInitialToast(true);
+      }
+    } catch (error: any) {
+      console.error('Fetch products error:', error.message, error.response?.data, error.response?.status);
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oh No!',
+        text2: error.response?.status === 404 ? 'API endpoint not found.' : 'Failed to load product list.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteProduct = async (id: string) => {
-    Alert.alert('Confirm Delete', 'Are you sure you want to delete this product?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          setLoading(true);
-          try {
-            await api.delete(`/products/${id}`);
-            Alert.alert('Success', 'Product deleted successfully!');
-            fetchProducts();
-          } catch (err) {
-            console.error('Error deleting product:', err);
-            Alert.alert('Error', 'Failed to delete product. Please try again.');
-          } finally {
-            setLoading(false);
-          }
-        },
-      },
-    ]);
+  const confirmDelete = async () => {
+    if (!productToDelete) return;
+    setDeleteConfirmVisible(false);
+    setLoading(true);
+    try {
+      await api.delete(`/products/${productToDelete}`);
+      Toast.show({
+        type: 'success',
+        text1: '🥪 Yum!',
+        text2: 'Product removed successfully!',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+      fetchProducts();
+    } catch (err: any) {
+      console.error('Error deleting product:', err.message, err.response?.data);
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oops!',
+        text2: err.response?.status === 404 ? 'Product not found.' : 'Failed to delete product.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+    } finally {
+      setLoading(false);
+      setProductToDelete(null);
+    }
   };
 
   const handleEditProduct = (item: ProductItem) => {
@@ -109,36 +148,78 @@ export default function ProductList() {
     setModalVisible(true);
   };
 
+  const handleDelete = (id: string) => {
+    setProductToDelete(id);
+    setDeleteConfirmVisible(true);
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmVisible(false);
+    setProductToDelete(null);
+  };
+
   const handleSaveProduct = async (productData: any) => {
     setLoading(true);
     try {
+      let imageUrl: string | null = selectedProduct ? (selectedProduct.image ?? null) : defaultImage;
+
+      if (productData.image && productData.image !== '') {
+        imageUrl = await uploadToCloudinary(productData.image);
+      }
+
       const payload = {
         productName: productData.name,
         categoryId: productData.categoryId,
         isVariant: productData.isVariant || false,
         price: productData.price,
-        image: productData.image,
+        image: imageUrl,
+        size: productData.size || null,
+        flavorName: productData.flavorName || null,
       };
 
       if (selectedProduct) {
         await api.put(`/products/${selectedProduct.id}`, payload);
-        Alert.alert('Success', 'Product updated successfully!');
+        Toast.show({
+          type: 'success',
+          text1: '🥪 Yum!',
+          text2: 'Product updated successfully!',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
       } else {
         await api.post('/products', payload);
-        Alert.alert('Success', 'Product created successfully!');
+        Toast.show({
+          type: 'success',
+          text1: '🥪 Yum!',
+          text2: 'Product created successfully!',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
       }
 
       fetchProducts();
       setModalVisible(false);
-    } catch (err) {
-      console.error('Error saving product:', err);
-      Alert.alert('Error', 'Failed to save product. Please try again.');
+    } catch (error: any) {
+      console.error('Error saving product:', error.message, error.response?.data, error.response?.status);
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oops!',
+        text2: error.message.includes('Cloudinary') ? 'Failed to upload image to Cloudinary.' : 'Failed to save product.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const categories = ['All', ...Array.from(new Set(products.map((item) => item.categoryName)))];
+  const categories = ['All', ...Array.from(new Set(products.map((item) => item.categoryName || 'Uncategorized')))];
 
   const filteredProducts =
     filterCategory === 'All'
@@ -146,11 +227,15 @@ export default function ProductList() {
       : products.filter((product) => product.categoryName === filterCategory);
 
   const renderProductItem = ({ item }: { item: ProductItem }) => {
+    const imageSource: ImageSourcePropType = {
+      uri: item.image || defaultImage,
+    };
+
     if (viewMode === 'list') {
       return (
         <TouchableOpacity style={styles.card} onPress={() => handleEditProduct(item)}>
           <Image
-            source={{ uri: item.image }}
+            source={imageSource}
             style={styles.image}
             resizeMode="cover"
           />
@@ -163,9 +248,9 @@ export default function ProductList() {
             </Text>
             <TouchableOpacity
               style={styles.deleteButton}
-              onPress={() => handleDeleteProduct(item.id)}
+              onPress={() => handleDelete(item.id)}
             >
-              <Ionicons name="trash" size={20} color="#EF4444" />
+              <Ionicons name="trash-outline" size={20} color="#EF4444" />
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -175,7 +260,7 @@ export default function ProductList() {
     return (
       <TouchableOpacity style={styles.gridCard} onPress={() => handleEditProduct(item)}>
         <Image
-          source={{ uri: item.image }}
+          source={imageSource}
           style={styles.gridImage}
           resizeMode="cover"
         />
@@ -183,14 +268,16 @@ export default function ProductList() {
           <Text style={styles.productName}>
             {item.name} {item.size ? `(${item.size})` : ''} {item.flavorName ? `- ${item.flavorName}` : ''}
           </Text>
-          <View style={styles.priceQuantityContainer}>
+          <View style={styles.priceContainer}>
             <Text style={styles.productDetails}>₱{item.price}</Text>
+            <Text style={styles.productDetails}>Category: {item.categoryName}</Text>
           </View>
+          
           <TouchableOpacity
             style={styles.deleteButton}
-            onPress={() => handleDeleteProduct(item.id)}
+            onPress={() => handleDelete(item.id)}
           >
-            <Ionicons name="trash" size={16} color="#EF4444" />
+            <Ionicons name="trash-outline" size={16} color="#EF4444" />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -204,7 +291,10 @@ export default function ProductList() {
           <ActivityIndicator size="large" color="#F59E0B" />
         </View>
       )}
-      {error && <Text style={styles.errorText}>{error}</Text>}
+      <Text style={styles.title}>🍽️ Fresh Fillings</Text>
+      <Text style={styles.subtitle}>
+        Manage your tasty products below!
+      </Text>
       <View style={styles.viewModeContainer}>
         <TouchableOpacity
           style={[styles.viewModeButton, viewMode === 'list' && styles.activeViewMode]}
@@ -245,7 +335,12 @@ export default function ProductList() {
       <TouchableOpacity style={styles.floatingButton} onPress={handleAddProduct}>
         <Ionicons name="add" size={30} color="#fff" />
       </TouchableOpacity>
-
+      <DeleteModal
+        visible={deleteConfirmVisible}
+        itemType="product"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
       <ProductModal
         visible={isModalVisible}
         onClose={() => setModalVisible(false)}
@@ -258,6 +353,9 @@ export default function ProductList() {
                 price: selectedProduct.price,
                 categoryId: selectedProduct.categoryId,
                 isVariant: false,
+                image: selectedProduct.image ?? undefined,
+                size: selectedProduct.size ?? undefined,
+                flavorName: selectedProduct.flavorName ?? undefined,
               }
             : null
         }
@@ -271,12 +369,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFBEB',
     padding: 16,
+    paddingTop: 38,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#F59E0B',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#7C3AED',
+    textAlign: 'center',
+    marginBottom: 16,
   },
   errorText: {
     color: '#EF4444',
@@ -377,8 +489,9 @@ const styles = StyleSheet.create({
     padding: 8,
     alignItems: 'center',
   },
-  priceQuantityContainer: {
-    flexDirection: 'row',
+  priceContainer: {
+    flexDirection: 'column',
+    alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
     marginTop: 4,

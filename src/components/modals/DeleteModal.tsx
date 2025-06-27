@@ -3,7 +3,7 @@ import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface DeleteModalProps {
   visible: boolean;
-  itemType: string; // e.g., "cash transaction", "credit record"
+  itemType: string; 
   onConfirm: () => void;
   onCancel: () => void;
 }
