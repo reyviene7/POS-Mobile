@@ -1,7 +1,9 @@
-import { Link } from 'expo-router'; // Using expo-router for navigation
-import React, { useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Link, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  Animated, Image,
+  Animated,
+  Image,
   Modal,
   Pressable,
   SafeAreaView,
@@ -9,52 +11,49 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
-
-import rawProductsData from '../src/scripts/products.json';
-
-type Variant = {
-  size: string;
-  price: number;
-  quantity: number;
-};
+import Toast from 'react-native-toast-message';
+import api from '../api';
 
 type Product = {
-  name: string;
-  price?: number;
-  quantity?: number;
-  variants?: Variant[];
-  flavors?: string[];
-  image?: string;
+  productId: string;
+  productName: string;
+  categoryName: string;
+  size: string | null;
+  price: number;
+  image: string | null;
+  flavorName: string | null;
 };
 
-type Category = {
-  name: string;
-  products: Product[];
-  addons?: string[];
-};
-
-type ProductsData = {
-  store: string;
-  categories: Category[];
+type Addon = {
+  addonId: number;
+  addonName: string;
+  categoryName: string;
+  categoryId: number;
+  price: number;
 };
 
 type CartItem = {
-  product: any;
+  product: Product;
   quantity: number;
-  addons: { [key: string]: number };
+  addons: { [addonId: string]: number };
+  addonDetails: Addon[];
 };
 
-const productsData: ProductsData = rawProductsData;
-const categories = ['All', ...productsData.categories.map(c => c.name)];
+const defaultImage = 'https://res.cloudinary.com/dzwjjpvdb/image/upload/v1750703171/EggCited/duaybsrpbbbbioafm3yo.jpg';
 
 export default function PointOfSales() {
+  const { cart: cartString } = useLocalSearchParams();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [addons, setAddons] = useState<Addon[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [addonQuantities, setAddonQuantities] = useState<{ [key: string]: number }>({});
-  const [cart, setCart] = useState<CartItem[]>([]); // Track cart items
+  const [addonQuantities, setAddonQuantities] = useState<{ [addonId: string]: number }>({});
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showScrollPrompt, setShowScrollPrompt] = useState(true);
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -64,91 +63,185 @@ export default function PointOfSales() {
     extrapolate: 'clamp',
   });
 
-  const flattenedProducts = productsData.categories.flatMap(category => {
-    return category.products.flatMap(product => {
-      if (product.variants) {
-        return product.variants.map(variant => ({
-          name: `${product.name} - ${variant.size}`,
-          price: variant.price,
-          quantity: variant.quantity,
-          category: category.name,
-          image: product.image || null,
-          baseName: product.name,
-        }));
-      } else {
-        return [{
-          name: product.name,
-          price: product.price || 0,
-          quantity: product.quantity || 0,
-          category: category.name,
-          image: product.image || null,
-          baseName: product.name,
-        }];
+  useEffect(() => {
+    const initializeCart = async () => {
+      try {
+        console.log('PointOfSales: cartString received:', cartString);
+        if (cartString) {
+          const parsedCart =
+            typeof cartString === 'string'
+              ? JSON.parse(cartString)
+              : Array.isArray(cartString) && cartString.length > 0
+              ? JSON.parse(cartString[0])
+              : [];
+          setCart(parsedCart);
+          console.log('PointOfSales: Cart set from cartString:', parsedCart);
+        } else {
+          await AsyncStorage.removeItem('cart');
+          setCart([]);
+          console.log('PointOfSales: Cart cleared and set to []');
+        }
+        const storedCart = await AsyncStorage.getItem('cart');
+        console.log('PointOfSales: AsyncStorage cart after init:', storedCart);
+      } catch (error) {
+        console.error('Failed to initialize cart:', error);
+        setCart([]);
       }
-    });
-  });
+    };
+    initializeCart();
+    fetchData();
+  }, [cartString]);
 
-  const filteredProducts =
-    selectedCategory === 'All'
-      ? flattenedProducts
-      : flattenedProducts.filter(p => p.category === selectedCategory);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const productResponse = await api.get('/products/with-price');
+      const apiProducts = productResponse.data;
+      if (!Array.isArray(apiProducts)) {
+        throw new Error('Products response is not an array');
+      }
 
-  const getDefaultImage = (category: string) => {
-    switch (category) {
-      case 'Sandwiches':
-        return require('../assets/images/default-product.jpg');
-      case 'Drinks':
-        return require('../assets/images/default-drink.jpg');
-      default:
-        return require('../assets/images/default-product.jpg');
+      const mappedProducts: Product[] = apiProducts.map((product: any) => ({
+        productId: product.productId.toString(),
+        productName: product.productName || 'Unknown Product',
+        categoryName: product.categoryName || 'Uncategorized',
+        size: product.size || null,
+        price: Number(product.price) || 0,
+        image: product.image || null,
+        flavorName: product.flavorName || null,
+      }));
+
+      setProducts(mappedProducts);
+
+      const addonResponse = await api.get('/categories/with-addons');
+      const apiAddons = addonResponse.data;
+      if (!Array.isArray(apiAddons)) {
+        throw new Error('Add-ons response is not an array');
+      }
+
+      const mappedAddons: Addon[] = apiAddons.map((addon: any) => ({
+        addonId: addon.addonId,
+        addonName: addon.addonName,
+        categoryName: addon.categoryName,
+        categoryId: addon.categoryId,
+        price: Number(addon.price) || 0,
+      }));
+
+      setAddons(mappedAddons);
+      const uniqueCategories = ['All', ...new Set(mappedAddons.map((addon: Addon) => addon.categoryName))];
+      setCategories(uniqueCategories);
+
+      Toast.show({
+        type: 'success',
+        text1: '🥪 Freshly Loaded!',
+        text2: 'Menu and add-ons loaded successfully!',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+    } catch (error: any) {
+      console.error('Fetch error:', error.message, error.response?.data, error.response?.status);
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oh No!',
+        text2: error.response?.status === 404 ? 'API endpoint not found.' : 'Failed to load menu.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getAddonsForCategory = (category: string): string[] => {
-    const cat = productsData.categories.find(c => c.name === category);
-    return cat?.addons || [];
+  const filteredProducts =
+    selectedCategory === 'All'
+      ? products
+      : products.filter((p) => p.categoryName === selectedCategory);
+
+  const getAddonsForCategory = (categoryName: string): Addon[] => {
+    return addons.filter((addon) => addon.categoryName === categoryName);
   };
 
-  const toggleAddon = (addon: string) => {
-    setAddonQuantities(prev => ({
+  const toggleAddon = (addonId: number) => {
+    setAddonQuantities((prev) => ({
       ...prev,
-      [addon]: prev[addon] ? prev[addon] + 1 : 1,
+      [addonId]: prev[addonId] ? prev[addonId] + 1 : 1,
     }));
   };
 
-  const decreaseAddonQuantity = (addon: string) => {
-    setAddonQuantities(prev => {
-      const newQuantity = (prev[addon] || 1) - 1;
+  const decreaseAddonQuantity = (addonId: number) => {
+    setAddonQuantities((prev) => {
+      const newQuantity = (prev[addonId] || 1) - 1;
       if (newQuantity <= 0) {
-        const { [addon]: _, ...rest } = prev;
+        const { [addonId]: _, ...rest } = prev;
         return rest;
       }
       return {
         ...prev,
-        [addon]: newQuantity,
+        [addonId]: newQuantity,
       };
     });
   };
 
-  const addToCart = () => {
+  const addToCart = async () => {
     if (!selectedProduct) return;
-    setCart(prev => [
-      ...prev,
-      { product: selectedProduct, quantity, addons: { ...addonQuantities } },
-    ]);
+    const selectedAddons = getAddonsForCategory(selectedProduct.categoryName).filter(
+      (addon) => addonQuantities[addon.addonId]
+    );
+    const newCartItem = {
+      product: selectedProduct,
+      quantity,
+      addons: { ...addonQuantities },
+      addonDetails: selectedAddons.map(({ addonId, addonName, price, categoryName, categoryId }) => ({
+        addonId,
+        addonName,
+        price,
+        categoryName,
+        categoryId,
+      })),
+    };
+    const newCart = [...cart, newCartItem];
+    setCart(newCart);
+    try {
+      await AsyncStorage.setItem('cart', JSON.stringify(newCart));
+      console.log('PointOfSales: Cart saved to AsyncStorage:', newCart);
+    } catch (error) {
+      console.error('Failed to save cart to AsyncStorage:', error);
+    }
     setSelectedProduct(null);
     setQuantity(1);
     setAddonQuantities({});
+  };
+
+  const handleAdjustQuantity = async (index: number, change: number) => {
+    const newCart = [...cart];
+    const newQuantity = newCart[index].quantity + change;
+    if (newQuantity <= 0) {
+      newCart.splice(index, 1);
+    } else {
+      newCart[index].quantity = newQuantity;
+    }
+    setCart(newCart);
+    try {
+      await AsyncStorage.setItem('cart', JSON.stringify(newCart));
+      console.log('PointOfSales: Cart updated in AsyncStorage:', newCart);
+    } catch (error) {
+      console.error('Failed to save cart to AsyncStorage:', error);
+    }
   };
 
   const calculateCartSummary = () => {
     let totalAmount = 0;
     let totalQuantity = 0;
 
-    cart.forEach(item => {
+    cart.forEach((item) => {
       const productCost = item.product.price * item.quantity;
-      const addonCost = Object.entries(item.addons).reduce((sum, [_, qty]) => {
-        return sum + qty * 5; // Assume ₱5 per add-on piece
+      const addonCost = Object.entries(item.addons).reduce((sum, [addonId, qty]) => {
+        const addon = item.addonDetails?.find((a) => a.addonId === Number(addonId));
+        return sum + (addon ? addon.price * qty : 0);
       }, 0);
       totalAmount += productCost + addonCost;
       totalQuantity += item.quantity;
@@ -161,24 +254,26 @@ export default function PointOfSales() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <Text style={styles.loadingText}>Loading Menu...</Text>
+        </View>
+      )}
       <View style={styles.filterRow}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterScroll}>
-          {categories.map(cat => (
+          contentContainerStyle={styles.filterScroll}
+        >
+          {categories.map((cat) => (
             <TouchableOpacity
               key={cat}
-              style={[
-                styles.filterButton,
-                selectedCategory === cat && styles.activeFilterButton,
-              ]}
-              onPress={() => setSelectedCategory(cat)}>
+              style={[styles.filterButton, selectedCategory === cat && styles.activeFilterButton]}
+              onPress={() => setSelectedCategory(cat)}
+            >
               <Text
-                style={[
-                  styles.filterText,
-                  selectedCategory === cat && styles.activeFilterText,
-                ]}>
+                style={[styles.filterText, selectedCategory === cat && styles.activeFilterText]}
+              >
                 {cat}
               </Text>
             </TouchableOpacity>
@@ -187,34 +282,34 @@ export default function PointOfSales() {
       </View>
 
       <Animated.ScrollView
-        contentContainerStyle={[styles.grid, { paddingBottom: 100 }]} // Add padding here
+        contentContainerStyle={[styles.grid, { paddingBottom: 200 }]}
         scrollEventThrottle={16}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
-        >
-        {filteredProducts.map((p, index) => (
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: false,
+        })}
+      >
+        {filteredProducts.map((p) => (
           <TouchableOpacity
-            key={index}
+            key={`${p.productId}-${p.size || ''}-${p.flavorName || ''}`}
             style={styles.card}
             onPress={() => {
               setSelectedProduct(p);
               setQuantity(1);
               setAddonQuantities({});
-            }}>
+            }}
+          >
             <Image
-              source={p.image ? { uri: p.image } : getDefaultImage(p.category)}
+              source={{ uri: p.image || defaultImage }}
               style={styles.image}
               resizeMode="cover"
             />
             <View style={styles.infoRow}>
               <View style={styles.leftCol}>
-                <Text style={styles.cardText}>{p.name}</Text>
+                <Text style={styles.cardText}>
+                  {p.productName} {p.size ? `(${p.size})` : ''}{' '}
+                  {p.flavorName ? `- ${p.flavorName}` : ''}
+                </Text>
                 <Text style={styles.priceText}>₱{p.price}</Text>
-              </View>
-              <View style={styles.rightCol}>
-                <Text style={styles.qtyText}>Qty: {p.quantity}</Text>
               </View>
             </View>
           </TouchableOpacity>
@@ -227,11 +322,65 @@ export default function PointOfSales() {
           <Text style={styles.scrollArrow}>↓</Text>
         </Animated.View>
       )}
+
+      <View style={styles.cartReviewContainer}>
+        <Text style={styles.cartReviewTitle}>Cart Summary</Text>
+        {cart.length > 0 ? (
+          cart.map((item, index) => (
+            <View
+              key={`${item.product.productId}-${item.product.size || ''}-${item.product.flavorName || ''}`}
+              style={styles.cartItem}
+            >
+              <View style={styles.cartItemDetails}>
+                <Text style={styles.cartItemText}>
+                  {item.product.productName} {item.product.size ? `(${item.product.size})` : ''}{' '}
+                  {item.product.flavorName ? `- ${item.product.flavorName}` : ''}
+                </Text>
+                {Object.entries(item.addons).map(([addonId, qty]) => {
+                  const addon = item.addonDetails?.find((a) => a.addonId === Number(addonId));
+                  return addon ? (
+                    <Text key={addonId} style={styles.cartAddonText}>
+                      {addon.addonName} x{qty} (₱{addon.price * qty})
+                    </Text>
+                  ) : null;
+                })}
+                <Text style={styles.cartSubtotal}>
+                  Subtotal: ₱{(
+                    item.product.price * item.quantity +
+                    Object.entries(item.addons).reduce((sum, [addonId, qty]) => {
+                      const addon = item.addonDetails?.find((a) => a.addonId === Number(addonId));
+                      return sum + (addon ? addon.price * qty : 0);
+                    }, 0)
+                  ).toFixed(2)}
+                </Text>
+              </View>
+              <View style={styles.quantityContainer}>
+                <TouchableOpacity
+                  style={styles.quantityButton}
+                  onPress={() => handleAdjustQuantity(index, -1)}
+                >
+                  <Text style={styles.quantityButtonText}>-</Text>
+                </TouchableOpacity>
+                <Text style={styles.quantityText}>{item.quantity}</Text>
+                <TouchableOpacity
+                  style={styles.quantityButton}
+                  onPress={() => handleAdjustQuantity(index, 1)}
+                >
+                  <Text style={styles.quantityButtonText}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.emptyCartText}>No items in cart</Text>
+        )}
+      </View>
+
       <View style={styles.previewContainer}>
         <Link
           href={{
             pathname: '/ConfirmOrder',
-            query: { cart: JSON.stringify(cart) }, // Pass cart as a query parameter
+            params: { cart: JSON.stringify(cart) },
           }}
           asChild
         >
@@ -254,50 +403,59 @@ export default function PointOfSales() {
           animationType="slide"
           transparent={true}
           visible={!!selectedProduct}
-          onRequestClose={() => setSelectedProduct(null)}>
+          onRequestClose={() => setSelectedProduct(null)}
+        >
           <View style={styles.modalBackground}>
             <View style={styles.modalContent}>
               <TouchableOpacity
                 style={styles.closeButton}
-                onPress={() => setSelectedProduct(null)}>
+                onPress={() => setSelectedProduct(null)}
+              >
                 <Text style={styles.closeText}>Back</Text>
               </TouchableOpacity>
 
-              <Text style={styles.modalTitle}>{selectedProduct.name}</Text>
+              <Text style={styles.modalTitle}>
+                {selectedProduct.productName} {selectedProduct.size ? `(${selectedProduct.size})` : ''}{' '}
+                {selectedProduct.flavorName ? `- ${selectedProduct.flavorName}` : ''}
+              </Text>
               <Text style={styles.modalPrice}>₱{selectedProduct.price}</Text>
 
               <View style={styles.quantityRow}>
-                <TouchableOpacity onPress={() => setQuantity(q => Math.max(1, q - 1))}>
+                <TouchableOpacity onPress={() => setQuantity((q) => Math.max(1, q - 1))}>
                   <Text style={styles.qtyBtn}>-</Text>
                 </TouchableOpacity>
-                <Text style={styles.quantityText}>{quantity}</Text>
-                <TouchableOpacity onPress={() => setQuantity(q => q + 1)}>
+                <Text style={styles.modalQuantityText}>{quantity}</Text>
+                <TouchableOpacity onPress={() => setQuantity((q) => q + 1)}>
                   <Text style={styles.qtyBtn}>+</Text>
                 </TouchableOpacity>
               </View>
 
-              {getAddonsForCategory(selectedProduct.category).length > 0 && (
+              {getAddonsForCategory(selectedProduct.categoryName).length > 0 && (
                 <View style={styles.addonContainer}>
                   <Text style={styles.addonTitle}>Select Add-ons:</Text>
                   <View style={styles.addonList}>
-                    {getAddonsForCategory(selectedProduct.category).map(addon => (
-                      <View key={addon} style={styles.addonItemWrapper}>
+                    {getAddonsForCategory(selectedProduct.categoryName).map((addon) => (
+                      <View key={addon.addonId} style={styles.addonItemWrapper}>
                         <Pressable
                           style={[
                             styles.addonItem,
-                            (addonQuantities[addon] || 0) > 0 && styles.addonItemActive,
+                            (addonQuantities[addon.addonId] || 0) > 0 && styles.addonItemActive,
                           ]}
-                          onPress={() => toggleAddon(addon)}>
-                          <Text style={styles.addonText}>{addon}</Text>
+                          onPress={() => toggleAddon(addon.addonId)}
+                        >
+                          <Text style={styles.addonText}>
+                            {addon.addonName} - ₱{addon.price}
+                          </Text>
                         </Pressable>
-                        {(addonQuantities[addon] || 0) > 0 && (
+                        {(addonQuantities[addon.addonId] || 0) > 0 && (
                           <View style={styles.addonQuantityRow}>
                             <Text style={styles.addonQuantityText}>
-                              {addonQuantities[addon]} pcs
+                              {addonQuantities[addon.addonId]} pcs
                             </Text>
                             <TouchableOpacity
-                              onPress={() => decreaseAddonQuantity(addon)}
-                              style={styles.minusButton}>
+                              onPress={() => decreaseAddonQuantity(addon.addonId)}
+                              style={styles.minusButton}
+                            >
                               <Text style={styles.minusText}>-</Text>
                             </TouchableOpacity>
                           </View>
@@ -325,7 +483,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFDEB',
     paddingHorizontal: 16,
     paddingTop: 12,
-    position: 'relative'
+    position: 'relative',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#F59E0B',
+    fontWeight: '600',
   },
   filterRow: {
     height: 48,
@@ -336,14 +505,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   filterButton: {
-  backgroundColor: '#FEF9C3', // pale yellow
-  paddingVertical: 8,
-  paddingHorizontal: 16,
-  borderRadius: 20,
-  marginRight: 8,
+    backgroundColor: '#FEF9C3',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginRight: 8,
   },
   activeFilterButton: {
-    backgroundColor: '#F59E0B', // egg yolk orange
+    backgroundColor: '#F59E0B',
   },
   filterText: {
     fontSize: 14,
@@ -386,10 +555,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingRight: 4,
   },
-  rightCol: {
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-  },
   cardText: {
     fontSize: 14,
     fontWeight: '600',
@@ -399,11 +564,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6B7280',
     marginTop: 2,
-  },
-  qtyText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#111827',
   },
   modalBackground: {
     flex: 1,
@@ -450,7 +610,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     color: '#FBBF24',
   },
-  quantityText: {
+  modalQuantityText: {
     fontSize: 16,
     fontWeight: '600',
     marginHorizontal: 12,
@@ -472,10 +632,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   addonItem: {
-  paddingVertical: 6,
-  paddingHorizontal: 12,
-  backgroundColor: '#FEF3C7',
-  borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 16,
   },
   addonItemActive: {
     backgroundColor: '#F59E0B',
@@ -505,11 +665,11 @@ const styles = StyleSheet.create({
     color: '#4F46E5',
   },
   confirmButton: {
-  marginTop: 12,
-  backgroundColor: '#F59E0B',
-  paddingVertical: 10,
-  borderRadius: 10,
-  alignItems: 'center',
+    marginTop: 12,
+    backgroundColor: '#F59E0B',
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
   },
   confirmText: {
     color: '#fff',
@@ -531,10 +691,10 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   reviewButton: {
-  backgroundColor: '#FBBF24', // golden yellow
-  paddingVertical: 10,
-  paddingHorizontal: 20,
-  borderRadius: 12,
+    backgroundColor: '#FBBF24',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 12,
   },
   reviewText: {
     color: '#fff',
@@ -572,19 +732,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   scrollPrompt: {
-  position: 'absolute',
-  bottom: 90, // Adjust as needed to float above footer/cart bar
-  left: 0,
-  right: 0,
-  flexDirection: 'row',
-  justifyContent: 'center',
-  alignItems: 'center',
-  paddingVertical: 8,
-  backgroundColor: 'rgba(255, 255, 255, 0.85)', // light background for visibility
-  borderRadius: 20,
-  marginHorizontal: 60,
-  zIndex: 10,
-  elevation: 3,
+    position: 'absolute',
+    bottom: 190,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderRadius: 20,
+    marginHorizontal: 60,
+    zIndex: 10,
+    elevation: 3,
   },
   scrollText: {
     fontSize: 13,
@@ -595,5 +755,70 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 6,
     color: '#4B5563',
+  },
+  cartReviewContainer: {
+    backgroundColor: '#F0FDF4',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 80,
+  },
+  cartReviewTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  cartItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  cartItemDetails: {
+    flex: 1,
+  },
+  cartItemText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  cartAddonText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  cartSubtotal: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#B91C1C',
+    marginTop: 4,
+  },
+  quantityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  quantityButton: {
+    padding: 6,
+    backgroundColor: '#F59E0B',
+    borderRadius: 8,
+  },
+  quantityButtonText: {
+    fontSize: 16,
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  quantityText: {
+    fontSize: 14,
+    color: '#1F2937',
+    marginHorizontal: 8,
+    fontWeight: '600',
+  },
+  emptyCartText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    marginVertical: 12,
   },
 });

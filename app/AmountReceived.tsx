@@ -1,25 +1,83 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
+import api from '../api';
+
+type Product = {
+  productId: string;
+  productName: string;
+  categoryName: string;
+  size: string | null;
+  price: number;
+  image: string | null;
+  flavorName: string | null;
+};
+
+type Addon = {
+  addonId: number;
+  addonName: string;
+  price: number;
+};
+
+type CartItem = {
+  product: Product;
+  quantity: number;
+  addons: { [addonId: string]: number };
+  addonDetails: Addon[];
+};
 
 export default function AmountReceived() {
   const router = useRouter();
-  const { total, method } = useLocalSearchParams();
+  const {
+    cart: cartString,
+    customerName,
+    customerNumber,
+    customerAddress,
+    notes,
+    discount,
+    deliveryFee,
+    total,
+    method,
+  } = useLocalSearchParams();
+
+  const cart: CartItem[] = cartString ? JSON.parse(cartString as string) : [];
   const payable = parseFloat(total as string || '0');
+  const parsedDiscount = parseFloat(discount as string || '0') || 0;
+  const parsedDeliveryFee = parseFloat(deliveryFee as string || '0') || 0;
 
   const [received, setReceived] = useState('');
   const [change, setChange] = useState(0);
 
   const suggestedBills = [10, 20, 50, 100, 200, 300, 400, 500, 1000];
+
+  const calculateSubtotal = () => {
+    let subtotal = 0;
+    if (Array.isArray(cart)) {
+      cart.forEach((item) => {
+        const productCost = item.product.price * item.quantity;
+        const addonCost = Object.entries(item.addons).reduce((sum, [addonId, qty]) => {
+          const addon = item.addonDetails?.find((a) => a.addonId === Number(addonId));
+          return sum + (addon ? addon.price * qty : 0);
+        }, 0);
+        subtotal += productCost + addonCost;
+      });
+    }
+    return subtotal;
+  };
+
+  const subtotal = calculateSubtotal();
 
   const handleBillPress = (amount: number) => {
     const current = parseFloat(received || '0');
@@ -39,56 +97,235 @@ export default function AmountReceived() {
     setChange(0);
   };
 
-  const handleProceed = () => {
-    router.push({
-      pathname: '/PaymentComplete',
-      query: {
-        total: payable.toFixed(2),
-        received: parseFloat(received || '0').toFixed(2),
-        method: method as string,
-        change: change.toFixed(2),
-      },
-    });
+  const handleProceed = async () => {
+    if (!received || parseFloat(received) < payable) {
+      Toast.show({
+        type: 'error',
+        text1: '💸 Insufficient Amount',
+        text2: 'Amount received must be greater than or equal to the amount payable.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+      return;
+    }
+
+    try {
+      // Reset receiptNo daily
+      const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+      const storedDate = await AsyncStorage.getItem('receiptDate');
+      let receiptNo = 1;
+      if (storedDate !== today) {
+        await AsyncStorage.setItem('receiptNo', '1');
+        await AsyncStorage.setItem('receiptDate', today);
+        console.log('AmountReceived: Reset receiptNo for new date:', today);
+      } else {
+        const storedReceiptNo = await AsyncStorage.getItem('receiptNo');
+        receiptNo = storedReceiptNo ? parseInt(storedReceiptNo, 10) : 1;
+      }
+
+      // Start from at least SALE005 since SALE001 to SALE004 exist
+      if (receiptNo < 5) {
+        receiptNo = 5;
+      }
+
+      const formattedReceiptNo = receiptNo.toString().padStart(3, '0');
+      const newReceiptNo = (receiptNo + 1).toString();
+      await AsyncStorage.setItem('receiptNo', newReceiptNo);
+      console.log('AmountReceived: Using receiptNo:', formattedReceiptNo, 'Next receiptNo:', newReceiptNo);
+
+      // Construct order payload with SALE<NNN> format
+      const orderDTO = {
+        orderId: `SALE${formattedReceiptNo}`,
+        timestamp: new Date().toISOString(),
+        total: payable,
+        paymentMethodId: method === 'Cash' ? 1 : method === 'Credit' ? 2 : null,
+        items: cart.map(item => ({
+          productName: `${item.product.productName}${item.product.size ? ` (${item.product.size})` : ''}${item.product.flavorName ? ` - ${item.product.flavorName}` : ''}`,
+          quantity: item.quantity,
+          price: item.product.price + Object.entries(item.addons).reduce((sum, [addonId, qty]) => {
+            const addon = item.addonDetails.find(a => a.addonId === Number(addonId));
+            return sum + (addon ? addon.price * qty : 0);
+          }, 0),
+        })),
+      };
+
+      console.log('AmountReceived: Sending order to /sales-history:', orderDTO);
+
+      // Send POST request to /sales-history
+      const response = await api.post('/sales-history', orderDTO);
+      console.log('AmountReceived: Order saved successfully:', response.data);
+
+      // Navigate to PaymentComplete
+      router.push({
+        pathname: '/PaymentComplete',
+        params: {
+          cart: JSON.stringify(cart),
+          customerName: customerName || '',
+          customerNumber: customerNumber || '',
+          customerAddress: customerAddress || '',
+          notes: notes || '',
+          discount: parsedDiscount.toString(),
+          deliveryFee: parsedDeliveryFee.toString(),
+          total: payable.toFixed(2),
+          received: parseFloat(received || '0').toFixed(2),
+          method: method as string,
+          change: change.toFixed(2),
+          receiptNo: formattedReceiptNo,
+        },
+      });
+    } catch (error: any) {
+      console.error('AmountReceived: Failed to save order:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to save order to server. Please try again.';
+      Toast.show({
+        type: 'error',
+        text1: '💸 Order Save Failed',
+        text2: errorMessage,
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+      const storedReceiptNo = await AsyncStorage.getItem('receiptNo');
+      if (storedReceiptNo) {
+        const currentReceiptNo = parseInt(storedReceiptNo, 10);
+        await AsyncStorage.setItem('receiptNo', (currentReceiptNo - 1).toString());
+      }
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <View style={styles.centered}>
-          <Text style={styles.label}>AMOUNT PAYABLE</Text>
-          <Text style={styles.amount}>₱{payable.toFixed(2)}</Text>
-        </View>
+        <ScrollView style={styles.scrollView}>
+          <Text style={styles.header}>Order Summary</Text>
 
-        <View style={styles.centered}>
-          <Text style={styles.subLabel}>Amount Received</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter amount received"
-            keyboardType="numeric"
-            value={received}
-            onChangeText={handleInputChange}
-          />
-        </View>
+          {/* Cart Items */}
+          <View style={styles.cartContainer}>
+            <Text style={styles.sectionTitle}>Items</Text>
+            {Array.isArray(cart) && cart.length > 0 ? (
+              cart.map((item, index) => (
+                <View
+                  key={`${item.product.productId}-${item.product.size || ''}-${item.product.flavorName || ''}`}
+                  style={styles.cartItem}
+                >
+                  <View style={styles.itemDetails}>
+                    <Text style={styles.itemName}>
+                      {item.product.productName} {item.product.size ? `(${item.product.size})` : ''}{' '}
+                      {item.product.flavorName ? `- ${item.product.flavorName}` : ''}
+                    </Text>
+                    {Object.entries(item.addons).length > 0 && (
+                      <View style={styles.addonContainer}>
+                        {Object.entries(item.addons).map(([addonId, qty]) => {
+                          const addon = item.addonDetails?.find((a) => a.addonId === Number(addonId));
+                          return addon ? (
+                            <Text key={addonId} style={styles.addonText}>
+                              {addon.addonName} x{qty} (₱{addon.price * qty})
+                            </Text>
+                          ) : null;
+                        })}
+                      </View>
+                    )}
+                    <Text style={styles.itemSubtotal}>
+                      ₱{(
+                        item.product.price * item.quantity +
+                        Object.entries(item.addons).reduce((sum, [addonId, qty]) => {
+                          const addon = item.addonDetails?.find((a) => a.addonId === Number(addonId));
+                          return sum + (addon ? addon.price * qty : 0);
+                        }, 0)
+                      ).toFixed(2)}
+                    </Text>
+                  </View>
+                  <Text style={styles.itemQuantity}>x{item.quantity}</Text>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.emptyCartText}>No items in cart</Text>
+            )}
+          </View>
 
-        <View style={styles.centered}>
-          <Text style={styles.suggestion}>Type or select bill tendered</Text>
-        </View>
+          {/* Totals */}
+          <View style={styles.totalContainer}>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Subtotal:</Text>
+              <Text style={styles.totalValue}>₱{subtotal.toFixed(2)}</Text>
+            </View>
+            {parsedDiscount > 0 && (
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Discount:</Text>
+                <Text style={styles.totalValue}>-₱{parsedDiscount.toFixed(2)}</Text>
+              </View>
+            )}
+            {parsedDeliveryFee > 0 && (
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Delivery Fee:</Text>
+                <Text style={styles.totalValue}>₱{parsedDeliveryFee.toFixed(2)}</Text>
+              </View>
+            )}
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>AMOUNT PAYABLE:</Text>
+              <Text style={styles.amount}>₱{payable.toFixed(2)}</Text>
+            </View>
+          </View>
 
-        <View style={styles.billsContainer}>
-          {suggestedBills.map((bill) => (
-            <TouchableOpacity key={bill} style={styles.billButton} onPress={() => handleBillPress(bill)}>
-              <Text style={styles.billText}>₱{bill}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+          {/* Customer Details */}
+          {(customerName || customerNumber || customerAddress || notes) && (
+            <View style={styles.customerContainer}>
+              <Text style={styles.sectionTitle}>Customer Details</Text>
+              {customerName && (
+                <Text style={styles.customerText}>Name: {customerName}</Text>
+              )}
+              {customerNumber && (
+                <Text style={styles.customerText}>Number: {customerNumber}</Text>
+              )}
+              {customerAddress && (
+                <Text style={styles.customerText}>Address: {customerAddress}</Text>
+              )}
+              {notes && <Text style={styles.customerText}>Notes: {notes}</Text>}
+            </View>
+          )}
 
-        <TouchableOpacity style={styles.exactButton} onPress={handleExactAmount}>
-          <Text style={styles.exactButtonText}>EXACT AMOUNT</Text>
-        </TouchableOpacity>
+          {/* Amount Received Input */}
+          <View style={styles.centered}>
+            <Text style={styles.subLabel}>Amount Received</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter amount received"
+              keyboardType="numeric"
+              value={received}
+              onChangeText={handleInputChange}
+            />
+          </View>
 
-        <TouchableOpacity style={styles.proceedButton} onPress={handleProceed}>
-          <Text style={styles.proceedText}>PROCEED</Text>
-        </TouchableOpacity>
+          <View style={styles.centered}>
+            <Text style={styles.suggestion}>Type or select bill tendered</Text>
+          </View>
+
+          <View style={styles.billsContainer}>
+            {suggestedBills.map((bill) => (
+              <TouchableOpacity
+                key={bill}
+                style={styles.billButton}
+                onPress={() => handleBillPress(bill)}
+              >
+                <Text style={styles.billText}>₱{bill}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <View style={styles.centered}>
+            <Text style={styles.changeLabel}>Change: ₱{change.toFixed(2)}</Text>
+          </View>
+
+          <TouchableOpacity style={styles.exactButton} onPress={handleExactAmount}>
+            <Text style={styles.exactButtonText}>EXACT AMOUNT</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.proceedButton} onPress={handleProceed}>
+            <Text style={styles.proceedText}>PROCEED</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -100,20 +337,100 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFBEB',
     padding: 20,
   },
-  centered: {
-    alignItems: 'center',
+  scrollView: {
+    flex: 1,
+  },
+  header: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#D97706',
+    textAlign: 'center',
     marginBottom: 16,
   },
-  label: {
-    textAlign: 'center',
+  cartContainer: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#B45309',
+    marginBottom: 12,
+  },
+  cartItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FDE68A',
+  },
+  itemDetails: {
+    flex: 1,
+  },
+  itemName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#7C2D12',
+  },
+  addonContainer: {
+    marginTop: 4,
+  },
+  addonText: {
+    fontSize: 12,
+    color: '#78350F',
+    marginLeft: 8,
+  },
+  itemSubtotal: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#B91C1C',
+    marginTop: 4,
+  },
+  itemQuantity: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#7C2D12',
+  },
+  emptyCartText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    marginVertical: 12,
+  },
+  totalContainer: {
+    marginBottom: 20,
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 4,
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#7C2D12',
+    marginRight: 10,
+  },
+  totalValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#7C2D12',
   },
   amount: {
-    fontSize: 38,
+    fontSize: 24,
     fontWeight: '800',
     color: '#DC2626',
+  },
+  customerContainer: {
+    marginBottom: 20,
+  },
+  customerText: {
+    fontSize: 14,
+    color: '#78350F',
+    marginBottom: 4,
+  },
+  centered: {
+    alignItems: 'center',
+    marginBottom: 16,
   },
   subLabel: {
     fontSize: 16,
@@ -128,6 +445,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     textAlign: 'center',
     width: '80%',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
     elevation: 2,
   },
   suggestion: {
@@ -154,6 +473,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
     color: '#78350F',
+  },
+  changeLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#10B981',
   },
   exactButton: {
     backgroundColor: '#10B981',
