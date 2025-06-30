@@ -2,15 +2,15 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
   Modal,
   Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import api from '../../../api';
 
 type CashTransaction = {
@@ -60,7 +60,15 @@ export default function CashModal({ visible, onClose, transaction, onSave, onDel
     } catch (err: any) {
       console.error('Error fetching order IDs:', err.message, err.response?.data);
       setError('Failed to load order IDs. Please try again.');
-      Alert.alert('Error', 'Failed to load order IDs.');
+      Toast.show({
+        type: 'error',
+        text1: '⚠️ Error',
+        text2: 'Failed to load order IDs.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     } finally {
       setLoadingOrderIds(false);
     }
@@ -68,11 +76,27 @@ export default function CashModal({ visible, onClose, transaction, onSave, onDel
 
   const handleSubmit = () => {
     if (!orderId.trim()) {
-      Alert.alert('Error', 'Order ID is required.');
+      Toast.show({
+        type: 'error',
+        text1: '📋 Missing Order ID',
+        text2: 'Order ID is required.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
       return;
     }
     if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-      Alert.alert('Error', 'Valid amount is required.');
+      Toast.show({
+        type: 'error',
+        text1: '💵 Invalid Amount',
+        text2: 'Valid amount is required.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
       return;
     }
 

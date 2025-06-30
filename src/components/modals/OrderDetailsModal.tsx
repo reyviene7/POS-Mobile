@@ -1,13 +1,13 @@
 import React from "react";
 import {
-  Alert,
   Modal,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
+import Toast from "react-native-toast-message";
 
 interface Item {
   productName: string;
@@ -69,14 +69,16 @@ const OrderDetailsModal: React.FC<Props> = ({
               <TouchableOpacity
                 style={[styles.button, styles.deleteButton]}
                 onPress={() => {
-                  Alert.alert(
-                    "Delete Order",
-                    `Are you sure you want to delete Order #${orderId}?`,
-                    [
-                      { text: "Cancel", style: "cancel" },
-                      { text: "Delete", style: "destructive", onPress: () => onDelete(orderId) },
-                    ]
-                  );
+                  onDelete(orderId);
+                  Toast.show({
+                    type: 'success',
+                    text1: '🗑️ Order Deleted',
+                    text2: `Order #${orderId} has been deleted.`,
+                    position: 'top',
+                    visibilityTime: 3000,
+                    autoHide: true,
+                    topOffset: 40,
+                  });
                 }}
               >
                 <Text style={styles.buttonText}>Delete</Text>

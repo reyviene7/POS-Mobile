@@ -3,7 +3,6 @@ import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Image,
   Modal,
@@ -12,8 +11,9 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import api from '../../../api';
 import { uploadToCloudinary } from '../../../CloudinaryConfig';
 
@@ -82,7 +82,15 @@ export default function ProductModal({ visible, onClose, product, onSave }: Prod
           }
         }
       } catch {
-        Alert.alert('Error', 'Failed to load categories.');
+        Toast.show({
+          type: 'error',
+          text1: '⚠️ Error',
+          text2: 'Failed to load categories.',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
       } finally {
         setLoading(false);
       }
@@ -149,7 +157,15 @@ export default function ProductModal({ visible, onClose, product, onSave }: Prod
   const handleSubmit = async () => {
     const validationError = validateForm();
     if (validationError) {
-      Alert.alert('Error', validationError);
+      Toast.show({
+        type: 'error',
+        text1: '📋 Validation Error',
+        text2: validationError,
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
       return;
     }
 
@@ -195,7 +211,15 @@ export default function ProductModal({ visible, onClose, product, onSave }: Prod
         }
       }
 
-      Alert.alert('Success', 'Product saved!');
+      Toast.show({
+        type: 'success',
+        text1: '✅ Product Saved',
+        text2: 'Product saved successfully!',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
       onSave({
         name,
         price: parseFloat(price),
@@ -208,7 +232,15 @@ export default function ProductModal({ visible, onClose, product, onSave }: Prod
       onClose();
     } catch (err) {
       console.error(err);
-      Alert.alert('Error', 'Failed to save product.');
+      Toast.show({
+        type: 'error',
+        text1: '⚠️ Error',
+        text2: 'Failed to save product.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     } finally {
       setLoading(false);
     }

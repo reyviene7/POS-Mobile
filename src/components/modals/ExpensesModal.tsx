@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
   Modal,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 type Expense = {
   expenseId?: number;
@@ -45,11 +45,27 @@ export default function ExpensesModal({ visible, onClose, expense, onSave }: Exp
 
   const handleSave = () => {
     if (!type.trim()) {
-      Alert.alert('Error', 'Expense type is required.');
+      Toast.show({
+        type: 'error',
+        text1: '📋 Missing Expense Type',
+        text2: 'Expense type is required.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
       return;
     }
     if (!amount.trim() || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-      Alert.alert('Error', 'Valid amount is required.');
+      Toast.show({
+        type: 'error',
+        text1: '💵 Invalid Amount',
+        text2: 'Valid amount is required.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
       return;
     }
 

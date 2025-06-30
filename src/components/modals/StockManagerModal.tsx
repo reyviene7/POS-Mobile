@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    Modal,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 type StockItem = { id?: string; name: string; quantity: number; unit: string };
 type Props = {
@@ -36,16 +36,40 @@ export default function StockManagerModal({ visible, onClose, onSave, item }: Pr
 
   const handleSubmit = () => {
     if (!name.trim()) {
-      Alert.alert('Validation', 'Ingredient name is required.');
+      Toast.show({
+        type: 'error',
+        text1: '📋 Missing Ingredient Name',
+        text2: 'Ingredient name is required.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
       return;
     }
     const qty = Number(quantity);
     if (!quantity.trim() || isNaN(qty) || qty < 0) {
-      Alert.alert('Validation', 'Please provide a valid non-negative quantity.');
+      Toast.show({
+        type: 'error',
+        text1: '🔢 Invalid Quantity',
+        text2: 'Please provide a valid non-negative quantity.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
       return;
     }
     if (!unit.trim()) {
-      Alert.alert('Validation', 'Unit is required.');
+      Toast.show({
+        type: 'error',
+        text1: '📏 Missing Unit',
+        text2: 'Unit is required.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
       return;
     }
     onSave({ id: item?.id, name: name.trim(), quantity: qty, unit: unit.trim() });
