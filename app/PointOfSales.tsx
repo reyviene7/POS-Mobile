@@ -3,6 +3,7 @@ import { Link, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  FlatList,
   Image,
   Modal,
   Pressable,
@@ -26,6 +27,12 @@ type Product = {
   flavorName: string | null;
 };
 
+type GroupedProduct = {
+  productName: string;
+  categoryName: string;
+  variants: Product[];
+};
+
 type Addon = {
   addonId: number;
   addonName: string;
@@ -45,11 +52,12 @@ const defaultImage = 'https://res.cloudinary.com/dzwjjpvdb/image/upload/v1750703
 
 export default function PointOfSales() {
   const { cart: cartString } = useLocalSearchParams();
-  const [products, setProducts] = useState<Product[]>([]);
+  const [groupedProducts, setGroupedProducts] = useState<GroupedProduct[]>([]);
   const [addons, setAddons] = useState<Addon[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProductGroup, setSelectedProductGroup] = useState<GroupedProduct | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [addonQuantities, setAddonQuantities] = useState<{ [addonId: string]: number }>({});
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -92,6 +100,14 @@ export default function PointOfSales() {
     fetchData();
   }, [cartString]);
 
+  useEffect(() => {
+    if (selectedProductGroup && selectedProductGroup.variants.length === 1) {
+      setSelectedVariant(selectedProductGroup.variants[0]);
+    } else {
+      setSelectedVariant(null);
+    }
+  }, [selectedProductGroup]);
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -111,7 +127,21 @@ export default function PointOfSales() {
         flavorName: product.flavorName || null,
       }));
 
-      setProducts(mappedProducts);
+      // Group products by productName
+      const productMap = new Map<string, GroupedProduct>();
+      mappedProducts.forEach((product) => {
+        if (!productMap.has(product.productName)) {
+          productMap.set(product.productName, {
+            productName: product.productName,
+            categoryName: product.categoryName,
+            variants: [],
+          });
+        }
+        productMap.get(product.productName)!.variants.push(product);
+      });
+
+      const grouped = Array.from(productMap.values());
+      setGroupedProducts(grouped);
 
       const addonResponse = await api.get('/categories/with-addons');
       const apiAddons = addonResponse.data;
@@ -158,8 +188,8 @@ export default function PointOfSales() {
 
   const filteredProducts =
     selectedCategory === 'All'
-      ? products
-      : products.filter((p) => p.categoryName === selectedCategory);
+      ? groupedProducts
+      : groupedProducts.filter((p) => p.categoryName === selectedCategory);
 
   const getAddonsForCategory = (categoryName: string): Addon[] => {
     return addons.filter((addon) => addon.categoryName === categoryName);
@@ -187,12 +217,23 @@ export default function PointOfSales() {
   };
 
   const addToCart = async () => {
-    if (!selectedProduct) return;
-    const selectedAddons = getAddonsForCategory(selectedProduct.categoryName).filter(
+    if (!selectedVariant) {
+      Toast.show({
+        type: 'error',
+        text1: '📋 No Variant Selected',
+        text2: 'Please select a product variant.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+      return;
+    }
+    const selectedAddons = getAddonsForCategory(selectedVariant.categoryName).filter(
       (addon) => addonQuantities[addon.addonId]
     );
     const newCartItem = {
-      product: selectedProduct,
+      product: selectedVariant,
       quantity,
       addons: { ...addonQuantities },
       addonDetails: selectedAddons.map(({ addonId, addonName, price, categoryName, categoryId }) => ({
@@ -208,10 +249,29 @@ export default function PointOfSales() {
     try {
       await AsyncStorage.setItem('cart', JSON.stringify(newCart));
       console.log('PointOfSales: Cart saved to AsyncStorage:', newCart);
+      Toast.show({
+        type: 'success',
+        text1: '✅ Added to Cart',
+        text2: `${selectedVariant.productName} ${selectedVariant.size ? `(${selectedVariant.size})` : ''} ${selectedVariant.flavorName ? `- ${selectedVariant.flavorName}` : ''} added!`,
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     } catch (error) {
       console.error('Failed to save cart to AsyncStorage:', error);
+      Toast.show({
+        type: 'error',
+        text1: '⚠️ Error',
+        text2: 'Failed to add to cart.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     }
-    setSelectedProduct(null);
+    setSelectedProductGroup(null);
+    setSelectedVariant(null);
     setQuantity(1);
     setAddonQuantities({});
   };
@@ -252,6 +312,25 @@ export default function PointOfSales() {
 
   const { totalAmount, totalQuantity } = calculateCartSummary();
 
+  const renderVariantItem = ({ item }: { item: Product }) => (
+    <TouchableOpacity
+      style={[
+        styles.variantItem,
+        selectedVariant?.productId === item.productId &&
+        selectedVariant?.size === item.size &&
+        selectedVariant?.flavorName === item.flavorName &&
+        styles.variantItemActive,
+      ]}
+      onPress={() => setSelectedVariant(item)}
+    >
+      <Text style={styles.variantText}>
+        {item.size ? `${item.size}` : 'Standard'}
+        {item.flavorName ? ` - ${item.flavorName}` : ''}
+      </Text>
+      <Text style={styles.variantPrice}>₱{item.price}</Text>
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       {loading && (
@@ -288,28 +367,29 @@ export default function PointOfSales() {
           useNativeDriver: false,
         })}
       >
-        {filteredProducts.map((p) => (
+        {filteredProducts.map((group) => (
           <TouchableOpacity
-            key={`${p.productId}-${p.size || ''}-${p.flavorName || ''}`}
+            key={group.productName}
             style={styles.card}
             onPress={() => {
-              setSelectedProduct(p);
+              setSelectedProductGroup(group);
               setQuantity(1);
               setAddonQuantities({});
             }}
           >
             <Image
-              source={{ uri: p.image || defaultImage }}
+              source={{ uri: group.variants[0].image || defaultImage }}
               style={styles.image}
               resizeMode="cover"
             />
             <View style={styles.infoRow}>
               <View style={styles.leftCol}>
-                <Text style={styles.cardText}>
-                  {p.productName} {p.size ? `(${p.size})` : ''}{' '}
-                  {p.flavorName ? `- ${p.flavorName}` : ''}
+                <Text style={styles.cardText}>{group.productName}</Text>
+                <Text style={styles.priceText}>
+                  {group.variants.length > 1
+                    ? `₱${Math.min(...group.variants.map((v) => v.price))} - ₱${Math.max(...group.variants.map((v) => v.price))}`
+                    : `₱${group.variants[0].price}`}
                 </Text>
-                <Text style={styles.priceText}>₱{p.price}</Text>
               </View>
             </View>
           </TouchableOpacity>
@@ -398,72 +478,98 @@ export default function PointOfSales() {
         </View>
       </View>
 
-      {selectedProduct && (
+      {selectedProductGroup && (
         <Modal
           animationType="slide"
           transparent={true}
-          visible={!!selectedProduct}
-          onRequestClose={() => setSelectedProduct(null)}
+          visible={!!selectedProductGroup}
+          onRequestClose={() => {
+            setSelectedProductGroup(null);
+            setSelectedVariant(null);
+          }}
         >
           <View style={styles.modalBackground}>
             <View style={styles.modalContent}>
               <TouchableOpacity
                 style={styles.closeButton}
-                onPress={() => setSelectedProduct(null)}
+                onPress={() => {
+                  setSelectedProductGroup(null);
+                  setSelectedVariant(null);
+                }}
               >
                 <Text style={styles.closeText}>Back</Text>
               </TouchableOpacity>
 
-              <Text style={styles.modalTitle}>
-                {selectedProduct.productName} {selectedProduct.size ? `(${selectedProduct.size})` : ''}{' '}
-                {selectedProduct.flavorName ? `- ${selectedProduct.flavorName}` : ''}
-              </Text>
-              <Text style={styles.modalPrice}>₱{selectedProduct.price}</Text>
+              <Text style={styles.modalTitle}>{selectedProductGroup.productName}</Text>
 
-              <View style={styles.quantityRow}>
-                <TouchableOpacity onPress={() => setQuantity((q) => Math.max(1, q - 1))}>
-                  <Text style={styles.qtyBtn}>-</Text>
-                </TouchableOpacity>
-                <Text style={styles.modalQuantityText}>{quantity}</Text>
-                <TouchableOpacity onPress={() => setQuantity((q) => q + 1)}>
-                  <Text style={styles.qtyBtn}>+</Text>
-                </TouchableOpacity>
-              </View>
+              {selectedProductGroup.variants.length > 1 && (
+                <>
+                  <Text style={styles.modalSubtitle}>Select a variant:</Text>
+                  <FlatList
+                    data={selectedProductGroup.variants}
+                    keyExtractor={(item) =>
+                      `${item.productId}-${item.size || ''}-${item.flavorName || ''}`
+                    }
+                    renderItem={renderVariantItem}
+                    style={styles.variantList}
+                  />
+                </>
+              )}
 
-              {getAddonsForCategory(selectedProduct.categoryName).length > 0 && (
-                <View style={styles.addonContainer}>
-                  <Text style={styles.addonTitle}>Select Add-ons:</Text>
-                  <View style={styles.addonList}>
-                    {getAddonsForCategory(selectedProduct.categoryName).map((addon) => (
-                      <View key={addon.addonId} style={styles.addonItemWrapper}>
-                        <Pressable
-                          style={[
-                            styles.addonItem,
-                            (addonQuantities[addon.addonId] || 0) > 0 && styles.addonItemActive,
-                          ]}
-                          onPress={() => toggleAddon(addon.addonId)}
-                        >
-                          <Text style={styles.addonText}>
-                            {addon.addonName} - ₱{addon.price}
-                          </Text>
-                        </Pressable>
-                        {(addonQuantities[addon.addonId] || 0) > 0 && (
-                          <View style={styles.addonQuantityRow}>
-                            <Text style={styles.addonQuantityText}>
-                              {addonQuantities[addon.addonId]} pcs
-                            </Text>
-                            <TouchableOpacity
-                              onPress={() => decreaseAddonQuantity(addon.addonId)}
-                              style={styles.minusButton}
-                            >
-                              <Text style={styles.minusText}>-</Text>
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                      </View>
-                    ))}
+              {selectedVariant && (
+                <>
+                  <Text style={styles.modalPrice}>
+                    ₱{selectedVariant.price} (
+                    {selectedVariant.size ? `${selectedVariant.size}` : 'Standard'}
+                    {selectedVariant.flavorName ? ` - ${selectedVariant.flavorName}` : ''})
+                  </Text>
+
+                  <View style={styles.quantityRow}>
+                    <TouchableOpacity onPress={() => setQuantity((q) => Math.max(1, q - 1))}>
+                      <Text style={styles.qtyBtn}>-</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.modalQuantityText}>{quantity}</Text>
+                    <TouchableOpacity onPress={() => setQuantity((q) => q + 1)}>
+                      <Text style={styles.qtyBtn}>+</Text>
+                    </TouchableOpacity>
                   </View>
-                </View>
+
+                  {getAddonsForCategory(selectedProductGroup.categoryName).length > 0 && (
+                    <View style={styles.addonContainer}>
+                      <Text style={styles.addonTitle}>Select Add-ons:</Text>
+                      <View style={styles.addonList}>
+                        {getAddonsForCategory(selectedProductGroup.categoryName).map((addon) => (
+                          <View key={addon.addonId} style={styles.addonItemWrapper}>
+                            <Pressable
+                              style={[
+                                styles.addonItem,
+                                (addonQuantities[addon.addonId] || 0) > 0 && styles.addonItemActive,
+                              ]}
+                              onPress={() => toggleAddon(addon.addonId)}
+                            >
+                              <Text style={styles.addonText}>
+                                {addon.addonName} - ₱{addon.price}
+                              </Text>
+                            </Pressable>
+                            {(addonQuantities[addon.addonId] || 0) > 0 && (
+                              <View style={styles.addonQuantityRow}>
+                                <Text style={styles.addonQuantityText}>
+                                  {addonQuantities[addon.addonId]} pcs
+                                </Text>
+                                <TouchableOpacity
+                                  onPress={() => decreaseAddonQuantity(addon.addonId)}
+                                  style={styles.minusButton}
+                                >
+                                  <Text style={styles.minusText}>-</Text>
+                                </TouchableOpacity>
+                              </View>
+                            )}
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+                </>
               )}
 
               <TouchableOpacity style={styles.confirmButton} onPress={addToCart}>
@@ -593,11 +699,45 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 8,
   },
   modalPrice: {
     fontSize: 16,
-    color: '#6B7280',
+    fontWeight: '600',
+    color: '#1F2937',
     marginBottom: 12,
+    textAlign: 'center',
+  },
+  variantList: {
+    maxHeight: 150,
+    marginBottom: 12,
+  },
+  variantItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 8,
+    marginBottom: 4,
+  },
+  variantItemActive: {
+    backgroundColor: '#F59E0B',
+  },
+  variantText: {
+    fontSize: 14,
+    color: '#1F2937',
+    flex: 1,
+  },
+  variantPrice: {
+    fontSize: 14,
+    color: '#6B7280',
   },
   quantityRow: {
     flexDirection: 'row',

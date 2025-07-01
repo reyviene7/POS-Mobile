@@ -138,7 +138,7 @@ export default function AmountReceived() {
       // Construct order payload with SALE<NNN> format
       const orderDTO = {
         orderId: `SALE${formattedReceiptNo}`,
-        timestamp: new Date().toISOString(),
+        timestamp: Date.now(),
         total: payable,
         paymentMethodId: method === 'Cash' ? 1 : method === 'Credit' ? 2 : null,
         items: cart.map(item => ({
