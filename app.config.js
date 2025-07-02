@@ -46,8 +46,8 @@ module.exports = {
       eas: {
         projectId: '80ca0597-91d3-4a4c-ae0b-8fbc1be8b388',
       },
-      apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:8080',
-      apiTimeout: parseInt(process.env.API_TIMEOUT || '10000', 10),
+      apiBaseUrl: process.env.API_BASE_URL ?? 'http://159.89.204.175:8080',
+      apiTimeout: parseInt(process.env.API_TIMEOUT ?? '10000', 10),
       
       cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
       cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,

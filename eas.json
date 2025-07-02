@@ -1,0 +1,36 @@
+{
+  "cli": {
+    "version": ">= 3.13.3",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "API_BASE_URL": "http://159.89.204.175:8080",
+        "CLOUDINARY_CLOUD_NAME": "dzwjjpvdb",
+        "CLOUDINARY_API_KEY": "626448337993824",
+        "CLOUDINARY_UPLOAD_PRESET": "EggCitedImages"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
