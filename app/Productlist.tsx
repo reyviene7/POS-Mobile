@@ -30,6 +30,7 @@ type ProductItem = {
   flavorName?: string | null;
   image?: string | null;
   categoryName?: string | null;
+  isVariant?: boolean;
 };
 
 export default function ProductList() {
@@ -61,20 +62,31 @@ export default function ProductList() {
         throw new Error('API response is not an array');
       }
 
-      const uniqueProducts = Array.from(
-        new Map(apiProducts.map((product: any) => [product.productId, product])).values()
-      );
+      // Group products by productId
+      const productMap = new Map<string, any[]>();
+      apiProducts.forEach((product: any) => {
+        const productId = product.productId.toString();
+        if (!productMap.has(productId)) {
+          productMap.set(productId, []);
+        }
+        productMap.get(productId)!.push(product);
+      });
 
-      const mappedProducts: ProductItem[] = uniqueProducts.map((product: any) => ({
-        id: product.productId?.toString() || '',
-        name: product.productName || 'Unknown Product',
-        price: Number(product.price) || 0,
-        size: product.size || null,
-        categoryId: product.categoryId || 0,
-        categoryName: product.categoryName || 'Uncategorized',
-        flavorName: product.flavorName || null,
-        image: product.image || null,
-      }));
+      const mappedProducts: ProductItem[] = Array.from(productMap.entries()).map(([id, productGroup]) => {
+        const product = productGroup[0];
+        const hasVariants = productGroup.length > 1 || productGroup.some(p => p.size || p.flavorName);
+        return {
+          id: id,
+          name: product.productName || 'Unknown Product',
+          price: hasVariants ? 0 : Number(product.price) || 0, // No price for variant products
+          size: product.size || null,
+          categoryId: product.categoryId || 0,
+          categoryName: product.categoryName || 'Uncategorized',
+          flavorName: product.flavorName || null,
+          image: product.image || defaultImage,
+          isVariant: hasVariants,
+        };
+      });
 
       setProducts(mappedProducts);
       if (!hasShownInitialToast) {
@@ -163,18 +175,18 @@ export default function ProductList() {
     try {
       let imageUrl: string | null = selectedProduct ? (selectedProduct.image ?? null) : defaultImage;
 
-      if (productData.image && productData.image !== '') {
+      if (productData.image && !productData.image.startsWith('https://') && productData.image !== defaultImage) {
         imageUrl = await uploadToCloudinary(productData.image);
       }
 
       const payload = {
-        productName: productData.name,
+        productName: productData.productName,
         categoryId: productData.categoryId,
         isVariant: productData.isVariant || false,
-        price: productData.price,
+        price: productData.isVariant ? 0 : productData.price,
         image: imageUrl,
-        size: productData.size || null,
-        flavorName: productData.flavorName || null,
+        size: null,
+        flavorName: null,
       };
 
       if (selectedProduct) {
@@ -241,10 +253,10 @@ export default function ProductList() {
           />
           <View style={styles.details}>
             <Text style={styles.productName}>
-              {item.name} {item.size ? `(${item.size})` : ''} {item.flavorName ? `- ${item.flavorName}` : ''}
+              {item.name}
             </Text>
             <Text style={styles.productDetails}>
-              ₱{item.price} | Category: {item.categoryName}
+              {item.isVariant ? 'Multiple Variants' : `₱${item.price.toFixed(2)}`} | Category: {item.categoryName}
             </Text>
             <TouchableOpacity
               style={styles.deleteButton}
@@ -266,13 +278,14 @@ export default function ProductList() {
         />
         <View style={styles.gridDetails}>
           <Text style={styles.productName}>
-            {item.name} {item.size ? `(${item.size})` : ''} {item.flavorName ? `- ${item.flavorName}` : ''}
+            {item.name}
           </Text>
           <View style={styles.priceContainer}>
-            <Text style={styles.productDetails}>₱{item.price}</Text>
+            <Text style={styles.productDetails}>
+              {item.isVariant ? 'Multiple Variants' : `₱${item.price.toFixed(2)}`}
+            </Text>
             <Text style={styles.productDetails}>Category: {item.categoryName}</Text>
           </View>
-          
           <TouchableOpacity
             style={styles.deleteButton}
             onPress={() => handleDelete(item.id)}
@@ -352,10 +365,8 @@ export default function ProductList() {
                 name: selectedProduct.name,
                 price: selectedProduct.price,
                 categoryId: selectedProduct.categoryId,
-                isVariant: false,
+                isVariant: selectedProduct.isVariant ?? false,
                 image: selectedProduct.image ?? undefined,
-                size: selectedProduct.size ?? undefined,
-                flavorName: selectedProduct.flavorName ?? undefined,
               }
             : null
         }
