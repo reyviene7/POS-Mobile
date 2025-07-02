@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -113,41 +112,34 @@ export default function AmountReceived() {
 
     try {
       // Reset receiptNo daily
-      const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
-      const storedDate = await AsyncStorage.getItem('receiptDate');
-      let receiptNo = 1;
-      if (storedDate !== today) {
-        await AsyncStorage.setItem('receiptNo', '1');
-        await AsyncStorage.setItem('receiptDate', today);
-        console.log('AmountReceived: Reset receiptNo for new date:', today);
-      } else {
-        const storedReceiptNo = await AsyncStorage.getItem('receiptNo');
-        receiptNo = storedReceiptNo ? parseInt(storedReceiptNo, 10) : 1;
-      }
+      const orderIdRes = await api.get('/sales-history/order-ids');
+      const existingOrderIds: string[] = orderIdRes.data;
 
-      // Start from at least SALE005 since SALE001 to SALE004 exist
-      if (receiptNo < 5) {
-        receiptNo = 5;
-      }
+      const numericParts = existingOrderIds
+      .filter(id => /^SALE\d+$/.test(id))
+      .map(id => parseInt(id.replace('SALE', ''), 10));
+      const nextReceiptNumber = numericParts.length > 0 ? Math.max(...numericParts) + 1 : 1;
+      const formattedReceiptNo = nextReceiptNumber.toString().padStart(3, '0');
+      const orderId = `SALE${formattedReceiptNo}`;
 
-      const formattedReceiptNo = receiptNo.toString().padStart(3, '0');
-      const newReceiptNo = (receiptNo + 1).toString();
-      await AsyncStorage.setItem('receiptNo', newReceiptNo);
-      console.log('AmountReceived: Using receiptNo:', formattedReceiptNo, 'Next receiptNo:', newReceiptNo);
-
-      // Construct order payload with SALE<NNN> format
+      // Step 3: Build payload
       const orderDTO = {
-        orderId: `SALE${formattedReceiptNo}`,
-        timestamp: Date.now(),
-        total: payable,
+        orderId,
+        timestamp: new Date().toISOString(),
+        total: parseFloat(payable.toFixed(2)),
         paymentMethodId: method === 'Cash' ? 1 : method === 'Credit' ? 2 : null,
         items: cart.map(item => ({
           productName: `${item.product.productName}${item.product.size ? ` (${item.product.size})` : ''}${item.product.flavorName ? ` - ${item.product.flavorName}` : ''}`,
           quantity: item.quantity,
-          price: item.product.price + Object.entries(item.addons).reduce((sum, [addonId, qty]) => {
-            const addon = item.addonDetails.find(a => a.addonId === Number(addonId));
-            return sum + (addon ? addon.price * qty : 0);
-          }, 0),
+          price: parseFloat(
+            (
+              item.product.price +
+              Object.entries(item.addons).reduce((sum, [addonId, qty]) => {
+                const addon = item.addonDetails.find(a => a.addonId === Number(addonId));
+                return sum + (addon ? addon.price * qty : 0);
+              }, 0)
+            ).toFixed(2)
+          ),
         })),
       };
 
@@ -187,11 +179,6 @@ export default function AmountReceived() {
         autoHide: true,
         topOffset: 40,
       });
-      const storedReceiptNo = await AsyncStorage.getItem('receiptNo');
-      if (storedReceiptNo) {
-        const currentReceiptNo = parseInt(storedReceiptNo, 10);
-        await AsyncStorage.setItem('receiptNo', (currentReceiptNo - 1).toString());
-      }
     }
   };
 

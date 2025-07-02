@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -115,7 +116,7 @@ export default function ConfirmOrder() {
           }}
           style={styles.headerLeftButton}
         >
-          <Text style={styles.backButtonText}>←</Text>
+        <Ionicons name="arrow-back-outline" size={22} />
         </TouchableOpacity>
       ),
     });
