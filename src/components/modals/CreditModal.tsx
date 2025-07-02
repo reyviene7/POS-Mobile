@@ -2,15 +2,15 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
   Modal,
   Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import api from '../../../api';
 
 type CreditRecord = {
@@ -69,7 +69,15 @@ export default function CreditModal({ visible, onClose, credit, onSave }: Props)
     } catch (err: any) {
       console.error('Error fetching order IDs:', err.message, err.response?.data);
       setError('Failed to load order IDs. Please try again.');
-      Alert.alert('Error', 'Failed to load order IDs.');
+      Toast.show({
+        type: 'error',
+        text1: '⚠️ Error',
+        text2: 'Failed to load order IDs.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     } finally {
       setLoadingOrderIds(false);
     }
@@ -77,24 +85,64 @@ export default function CreditModal({ visible, onClose, credit, onSave }: Props)
 
   const handleSubmit = () => {
     if (!orderId.trim()) {
-      Alert.alert('Error', 'Order ID is required.');
+      Toast.show({
+        type: 'error',
+        text1: '📋 Missing Order ID',
+        text2: 'Order ID is required.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
       return;
     }
     if (!customerName.trim()) {
-      Alert.alert('Error', 'Customer name is required.');
+      Toast.show({
+        type: 'error',
+        text1: '👤 Missing Customer Name',
+        text2: 'Customer name is required.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
       return;
     }
     if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-      Alert.alert('Error', 'Valid amount is required.');
+      Toast.show({
+        type: 'error',
+        text1: '💵 Invalid Amount',
+        text2: 'Valid amount is required.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
       return;
     }
     const paidValue = parseFloat(paid || '0');
     if (isNaN(paidValue) || paidValue < 0) {
-      Alert.alert('Error', 'Valid paid amount is required.');
+      Toast.show({
+        type: 'error',
+        text1: '💵 Invalid Paid Amount',
+        text2: 'Valid paid amount is required.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
       return;
     }
     if (paidValue > parseFloat(amount)) {
-      Alert.alert('Error', 'Paid amount cannot exceed total amount.');
+      Toast.show({
+        type: 'error',
+        text1: '⚖️ Invalid Paid Amount',
+        text2: 'Paid amount cannot exceed total amount.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
       return;
     }
 

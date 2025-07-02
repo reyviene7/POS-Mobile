@@ -3,7 +3,6 @@ import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Image,
   Modal,
@@ -14,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import api from '../../../api';
 import { uploadToCloudinary } from '../../../CloudinaryConfig';
 
@@ -27,8 +27,6 @@ type ProductModalProps = {
     categoryId?: number;
     isVariant?: boolean;
     image?: string;
-    size?: string | null;
-    flavorName?: string | null;
   } | null;
   onSave: (productData: any) => void;
 };
@@ -41,174 +39,249 @@ type Category = {
 type Variant = {
   size: string;
   price: string;
-  quantity: string;
+  flavor: string;
 };
 
 export default function ProductModal({ visible, onClose, product, onSave }: ProductModalProps) {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [categoryId, setCategoryId] = useState<string>('');
-  const [categoryName, setCategoryName] = useState<string>('Select Category');
+  const [categoryName, setCategoryName] = useState('Select Category');
   const [isVariant, setIsVariant] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [variants, setVariants] = useState<Variant[]>([]);
+  const [variants, setVariants] = useState<Variant[]>([{ size: '', price: '', flavor: '' }]);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>('');
   const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
-  const [fadeAnim] = useState(new Animated.Value(0)); // For modal animation
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [formErrors, setFormErrors] = useState<string[]>([]);
+
   const DEFAULT_IMAGE_URL = 'https://res.cloudinary.com/dzwjjpvdb/image/upload/v1750703171/EggCited/duaybsrpbbbbioafm3yo.jpg';
 
+  // Fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
       setLoading(true);
       try {
-        const response = await api.get('/categories');
-        const fetchedCategories = response.data.map((cat: any) => ({
-          id: cat.categoryId,
-          name: cat.categoryName,
-        }));
-        setCategories(fetchedCategories);
+        const res = await api.get('/categories');
+        const catList = res.data.map((cat: any) => ({ id: cat.categoryId, name: cat.categoryName }));
+        setCategories(catList);
 
-        if (product && product.categoryId) {
-          const category = fetchedCategories.find((cat: Category) => cat.id === product.categoryId);
-          if (category) {
-            setCategoryId(product.categoryId.toString());
-            setCategoryName(category.name);
-          } else {
-            setError('Selected category not found.');
-            setCategoryId('');
-            setCategoryName('Select Category');
+        if (product?.categoryId) {
+          const matched = catList.find((c: Category) => c.id === product.categoryId);
+          if (matched) {
+            setCategoryId(String(matched.id));
+            setCategoryName(matched.name);
           }
         }
-      } catch {
-        Alert.alert('Error', 'Failed to load categories.');
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+        Toast.show({ type: 'error', text1: '⚠️ Error', text2: 'Failed to load categories.', topOffset: 40 });
       } finally {
         setLoading(false);
       }
     };
-
     fetchCategories();
   }, [product]);
 
+  // Fetch product variants and reset state for new product
   useEffect(() => {
-    if (product) {
-      setName(product.name || '');
-      setPrice(product.price?.toString() || '');
-      setIsVariant(!!product.isVariant);
-      setImageUri(product.image ?? null);
-      setVariants(
-        product.size
-          ? [{ size: product.size, price: product.price?.toString() || '', quantity: product.flavorName || '' }]
-          : [{ size: '', price: '', quantity: '' }]
-      );
-    } else {
+    if (!visible) {
+      // Reset state when modal is closed
       setName('');
       setPrice('');
       setCategoryId('');
       setCategoryName('Select Category');
       setIsVariant(false);
       setImageUri(null);
-      setVariants([{ size: '', price: '', quantity: '' }]);
+      setVariants([{ size: '', price: '', flavor: '' }]);
+      setFormErrors([]);
+      return;
     }
-  }, [product]);
 
-  const addVariantField = () => setVariants([...variants, { size: '', price: '', quantity: '' }]);
+    if (product?.id) {
+      setLoading(true);
+      setName(product.name || '');
+      setPrice(product.price?.toString() || '0');
+      setImageUri(product.image ?? null);
+      setIsVariant(product.isVariant ?? false);
 
-  const updateVariant = (index: number, key: keyof Variant, value: string) => {
-    const updated = [...variants];
-    updated[index][key] = value;
-    setVariants(updated);
-  };
+      // Fetch variants for the specific product
+      api.get(`/products/with-price?productId=${product.id}`)
+        .then(res => {
+          const productData = res.data;
+          if (!Array.isArray(productData)) {
+            throw new Error('Invalid API response: Expected an array');
+          }
+
+          // Ensure only variants for the current productId are processed
+          const filteredVariants = productData.filter((v: any) => v.productId === product.id);
+          if (filteredVariants.length === 0 && product.isVariant) {
+            Toast.show({
+              type: 'error',
+              text1: '⚠️ Error',
+              text2: 'No variants found for this product.',
+              topOffset: 40,
+            });
+            setVariants([{ size: '', price: '', flavor: '' }]);
+            return;
+          }
+
+          setName(filteredVariants[0]?.productName || product.name || '');
+          setPrice(filteredVariants[0]?.price?.toString() || product.price?.toString() || '0');
+          setImageUri(filteredVariants[0]?.image || product.image || null);
+
+          const matchedCategory = categories.find(c => c.id === filteredVariants[0]?.categoryId || product.categoryId);
+          if (matchedCategory) {
+            setCategoryId(String(matchedCategory.id));
+            setCategoryName(matchedCategory.name);
+          }
+
+          if (product.isVariant) {
+            const variantList = filteredVariants.map((v: any) => ({
+              size: v.size || '',
+              price: v.price?.toString() || '',
+              flavor: v.flavorName || '',
+            }));
+            setVariants(variantList.length > 0 ? variantList : [{ size: '', price: '', flavor: '' }]);
+          } else {
+            setVariants([{ size: '', price: '', flavor: '' }]);
+          }
+        })
+        .catch(err => {
+          console.error('Error fetching product variants:', err);
+          Toast.show({
+            type: 'error',
+            text1: '⚠️ Error',
+            text2: 'Failed to load product variants.',
+            topOffset: 40,
+          });
+          setVariants([{ size: '', price: '', flavor: '' }]);
+        })
+        .finally(() => setLoading(false));
+    } else {
+      // Reset for new product
+      setName('');
+      setPrice('');
+      setCategoryId('');
+      setCategoryName('Select Category');
+      setIsVariant(false);
+      setImageUri(null);
+      setVariants([{ size: '', price: '', flavor: '' }]);
+      setFormErrors([]);
+    }
+  }, [product, categories, visible]);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.8,
     });
-
     if (!result.canceled && result.assets.length > 0) {
       setImageUri(result.assets[0].uri);
     }
   };
 
+  const addVariant = () => setVariants([...variants, { size: '', price: '', flavor: '' }]);
+
+  const updateVariant = (index: number, key: keyof Variant, value: string) => {
+    const copy = [...variants];
+    copy[index][key] = value;
+    setVariants(copy);
+  };
+
+  const removeVariant = (index: number) => {
+    setVariants(variants.filter((_, i) => i !== index));
+  };
+
   const validateForm = () => {
-    if (!name.trim()) return 'Product name is required.';
-    if (!categoryId) return 'Category is required.';
-    if (!isVariant && (!price.trim() || isNaN(+price))) return 'Valid price required for non-variant product.';
-    if (isVariant) {
-      for (const variant of variants) {
-        if (!variant.size.trim() || !variant.price.trim() || isNaN(+variant.price)) {
-          return 'Each variant must have a valid size and price.';
-        }
-      }
+    const errors: string[] = [];
+    if (!name.trim()) errors.push('Product name is required');
+    if (!categoryId) errors.push('Category is required');
+    if (!isVariant && (!price || isNaN(+price) || +price <= 0)) {
+      errors.push('Price is required and must be greater than 0 for non-variant products');
     }
-    return null;
+    if (isVariant) {
+      if (variants.length === 0) {
+        errors.push('At least one variant is required');
+      }
+      variants.forEach((v, i) => {
+        if (!v.size) errors.push(`Size is required for variant ${i + 1}`);
+        if (!v.price || isNaN(+v.price) || +v.price <= 0) errors.push(`Price is required and must be greater than 0 for variant ${i + 1}`);
+        if (!v.flavor) errors.push(`Flavor is required for variant ${i + 1}`);
+      });
+    }
+    setFormErrors(errors);
+    return errors.length === 0;
   };
 
   const handleSubmit = async () => {
-    const validationError = validateForm();
-    if (validationError) {
-      Alert.alert('Error', validationError);
+    if (!validateForm()) {
+      Toast.show({
+        type: 'error',
+        text1: '⚠️ Validation Error',
+        text2: formErrors[0],
+        topOffset: 40,
+      });
       return;
     }
 
     setLoading(true);
     try {
-      let uploadedImageUrl = imageUri;
-
-      if (!uploadedImageUrl && !product) {
-        uploadedImageUrl = DEFAULT_IMAGE_URL;
+      let uploadedImage = imageUri || DEFAULT_IMAGE_URL;
+      if (uploadedImage && !uploadedImage.startsWith('https://') && uploadedImage !== DEFAULT_IMAGE_URL) {
+        uploadedImage = await uploadToCloudinary(uploadedImage);
       }
 
-      if (uploadedImageUrl && !uploadedImageUrl.startsWith('https://')) {
-        uploadedImageUrl = await uploadToCloudinary(uploadedImageUrl);
-      }
-
-      const baseProduct = {
+      const payload = {
         productName: name.trim(),
         categoryId: parseInt(categoryId),
         isVariant,
         price: isVariant ? 0 : parseFloat(price),
-        image: uploadedImageUrl,
-        size: isVariant ? null : variants[0]?.size || null,
-        flavorName: isVariant ? null : variants[0]?.quantity || null,
+        image: uploadedImage,
+        size: null,
+        flavorName: null,
       };
 
       let productId = product?.id;
 
       if (productId) {
-        await api.put(`/products/${productId}`, baseProduct);
+        await api.put(`/products/${productId}`, payload);
+        await api.delete(`/product-variants/product/${productId}`);
       } else {
-        const response = await api.post('/products', baseProduct);
-        productId = response.data.productId;
+        const res = await api.post('/products', payload);
+        productId = res.data.productId;
       }
 
       if (isVariant && productId) {
-        for (const variant of variants) {
-          await api.post('/product-variants', {
-            product: { productId },
-            size: variant.size,
-            price: parseFloat(variant.price),
-            quantity: parseInt(variant.quantity) || 0,
-          });
+        for (const v of variants) {
+          if (v.size && v.price && v.flavor) {
+            await api.post('/product-variants', {
+              product: { productId },
+              size: v.size,
+              price: parseFloat(v.price),
+              flavorName: v.flavor,
+            });
+          }
         }
       }
 
-      Alert.alert('Success', 'Product saved!');
-      onSave({
-        name,
-        price: parseFloat(price),
-        categoryId: parseInt(categoryId),
-        isVariant,
-        image: uploadedImageUrl,
-        size: isVariant ? null : variants[0]?.size || null,
-        flavorName: isVariant ? null : variants[0]?.quantity || null,
+      Toast.show({
+        type: 'success',
+        text1: '✅ Success',
+        text2: `Product ${productId ? 'updated' : 'created'} successfully!`,
+        topOffset: 40,
       });
+      onSave(payload);
       onClose();
     } catch (err) {
-      console.error(err);
-      Alert.alert('Error', 'Failed to save product.');
+      console.error('Error saving product:', err);
+      Toast.show({
+        type: 'error',
+        text1: '⚠️ Error',
+        text2: 'Failed to save product.',
+        topOffset: 40,
+      });
     } finally {
       setLoading(false);
     }
@@ -216,19 +289,13 @@ export default function ProductModal({ visible, onClose, product, onSave }: Prod
 
   const openCategoryModal = () => {
     setCategoryModalVisible(true);
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
+    Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
   };
 
   const closeCategoryModal = () => {
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => setCategoryModalVisible(false));
+    Animated.timing(fadeAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+      setCategoryModalVisible(false);
+    });
   };
 
   const selectCategory = (category: Category) => {
@@ -243,28 +310,32 @@ export default function ProductModal({ visible, onClose, product, onSave }: Prod
     <Modal animationType="slide" transparent visible={visible}>
       <View style={styles.overlay}>
         <View style={styles.modalContent}>
-          {loading && (
-            <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="large" color="#F59E0B" />
-            </View>
-          )}
+          {loading && <View style={styles.loadingOverlay}><ActivityIndicator size="large" color="#F59E0B" /></View>}
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <Text style={styles.title}>{product ? 'Edit Product' : 'Add New Product'}</Text>
 
-          <ScrollView>
-            <Text style={styles.title}>{product ? 'Edit Product' : 'Add Product'}</Text>
-
-            {imageUri && (
-              <Image
-                source={{ uri: imageUri }}
-                style={{ width: '100%', height: 160, borderRadius: 12, marginBottom: 12 }}
-              />
+            {formErrors.length > 0 && (
+              <View style={styles.errorContainer}>
+                {formErrors.map((error, i) => (
+                  <Text key={i} style={styles.errorText}>{error}</Text>
+                ))}
+              </View>
             )}
 
-            <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
-              <Text style={styles.uploadText}>{imageUri ? 'Replace Image' : 'Upload Image'}</Text>
-            </TouchableOpacity>
+            <View style={styles.imageContainer}>
+              <Image
+                source={{ uri: imageUri || DEFAULT_IMAGE_URL }}
+                style={styles.imagePreview}
+                resizeMode="cover"
+              />
+              <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
+                <Ionicons name="image-outline" size={20} color="#92400E" />
+                <Text style={styles.uploadText}>{imageUri ? 'Change Image' : 'Upload Image'}</Text>
+              </TouchableOpacity>
+            </View>
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, formErrors.includes('Product name is required') && styles.inputError]}
               placeholder="Product Name"
               value={name}
               onChangeText={setName}
@@ -272,47 +343,40 @@ export default function ProductModal({ visible, onClose, product, onSave }: Prod
 
             {!isVariant && (
               <TextInput
-                style={styles.input}
-                placeholder="Price"
+                style={[styles.input, formErrors.includes('Price is required and must be greater than 0 for non-variant products') && styles.inputError]}
+                placeholder="Price (₱)"
                 keyboardType="numeric"
                 value={price}
                 onChangeText={setPrice}
               />
             )}
 
-            <TouchableOpacity style={styles.dropdownButton} onPress={openCategoryModal}>
+            <TouchableOpacity
+              style={[styles.dropdownButton, !categoryId && formErrors.length > 0 && styles.inputError]}
+              onPress={openCategoryModal}
+            >
               <Text style={styles.dropdownText}>{categoryName}</Text>
               <Ionicons name="chevron-down" size={20} color="#92400E" />
             </TouchableOpacity>
 
-            <Modal
-              transparent
-              visible={isCategoryModalVisible}
-              animationType="none"
-              onRequestClose={closeCategoryModal}
-            >
+            <Modal transparent visible={isCategoryModalVisible}>
               <View style={styles.categoryModalOverlay}>
                 <Animated.View style={[styles.categoryModalContent, { opacity: fadeAnim }]}>
                   <View style={styles.categoryModalHeader}>
-                    <Text style={styles.categoryModalTitle}>🥪 Choose a Category</Text>
+                    <Text style={styles.categoryModalTitle}>Select Category</Text>
                     <TouchableOpacity onPress={closeCategoryModal}>
                       <Ionicons name="close" size={24} color="#92400E" />
                     </TouchableOpacity>
                   </View>
-                  <ScrollView style={styles.categoryList}>
+                  <ScrollView>
                     {categories.map((cat) => (
                       <TouchableOpacity
                         key={cat.id}
-                        style={[
-                          styles.categoryItem,
-                          categoryId === cat.id.toString() && styles.categoryItemSelected,
-                        ]}
+                        style={[styles.categoryItem, categoryId === String(cat.id) && styles.categoryItemSelected]}
                         onPress={() => selectCategory(cat)}
                       >
                         <Text style={styles.categoryItemText}>{cat.name}</Text>
-                        {categoryId === cat.id.toString() && (
-                          <Ionicons name="checkmark-circle" size={20} color="#F59E0B" />
-                        )}
+                        {categoryId === String(cat.id) && <Ionicons name="checkmark-circle" size={20} color="#F59E0B" />}
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
@@ -321,7 +385,7 @@ export default function ProductModal({ visible, onClose, product, onSave }: Prod
             </Modal>
 
             <View style={styles.checkboxContainer}>
-              <Text style={styles.checkboxLabel}>Has Variant</Text>
+              <Text style={styles.checkboxLabel}>Has Variants</Text>
               <TouchableOpacity
                 style={[styles.checkboxBox, isVariant && styles.checkboxBoxChecked]}
                 onPress={() => setIsVariant(!isVariant)}
@@ -330,46 +394,58 @@ export default function ProductModal({ visible, onClose, product, onSave }: Prod
               </TouchableOpacity>
             </View>
 
-            {isVariant &&
-              variants.map((variant, idx) => (
-                <View key={idx} style={styles.variantGroup}>
-                  <TextInput
-                    placeholder="Size (e.g. 16oz)"
-                    style={styles.input}
-                    value={variant.size}
-                    onChangeText={(text) => updateVariant(idx, 'size', text)}
-                  />
-                  <TextInput
-                    placeholder="Price"
-                    style={styles.input}
-                    keyboardType="numeric"
-                    value={variant.price}
-                    onChangeText={(text) => updateVariant(idx, 'price', text)}
-                  />
-                  <TextInput
-                    placeholder="Quantity"
-                    style={styles.input}
-                    keyboardType="numeric"
-                    value={variant.quantity}
-                    onChangeText={(text) => updateVariant(idx, 'quantity', text)}
-                  />
-                </View>
-              ))}
-
             {isVariant && (
-              <TouchableOpacity onPress={addVariantField}>
-                <Text style={{ color: '#D97706', marginBottom: 16 }}>+ Add another variant</Text>
-              </TouchableOpacity>
+              <>
+                <Text style={styles.sectionHeader}>Variants & Flavors</Text>
+                {variants.map((v, i) => (
+                  <View key={i} style={styles.variantGroup}>
+                    <TextInput
+                      style={[styles.input, formErrors.includes(`Size is required for variant ${i + 1}`) && styles.inputError]}
+                      placeholder="Size (e.g., 16oz)"
+                      value={v.size}
+                      onChangeText={(val) => updateVariant(i, 'size', val)}
+                    />
+                    <TextInput
+                      style={[styles.input, formErrors.includes(`Price is required and must be greater than 0 for variant ${i + 1}`) && styles.inputError]}
+                      placeholder="Price (₱)"
+                      keyboardType="numeric"
+                      value={v.price}
+                      onChangeText={(val) => updateVariant(i, 'price', val)}
+                    />
+                    <TextInput
+                      style={[styles.input, formErrors.includes(`Flavor is required for variant ${i + 1}`) && styles.inputError]}
+                      placeholder="Flavor"
+                      value={v.flavor}
+                      onChangeText={(val) => updateVariant(i, 'flavor', val)}
+                    />
+                    {variants.length > 1 && (
+                      <TouchableOpacity style={styles.removeButton} onPress={() => removeVariant(i)}>
+                        <Ionicons name="trash-outline" size={16} color="#fff" />
+                        <Text style={styles.removeButtonText}>Remove</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+                <TouchableOpacity style={styles.addVariantButton} onPress={addVariant}>
+                  <Ionicons name="add-circle-outline" size={20} color="#D97706" />
+                  <Text style={styles.addVariantText}>Add Another Variant</Text>
+                </TouchableOpacity>
+              </>
             )}
 
-            {error && <Text style={styles.errorText}>{error}</Text>}
-
             <View style={styles.buttonContainer}>
-              <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={onClose}>
+              <TouchableOpacity
+                style={[styles.button, styles.cancelButton]}
+                onPress={onClose}
+              >
                 <Text style={styles.buttonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleSubmit}>
-                <Text style={styles.buttonText}>Save</Text>
+              <TouchableOpacity
+                style={[styles.button, styles.saveButton, formErrors.length > 0 && styles.buttonDisabled]}
+                onPress={handleSubmit}
+                disabled={formErrors.length > 0}
+              >
+                <Text style={[styles.buttonText, styles.saveButtonText]}>Save</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -383,43 +459,92 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    padding: 24,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    padding: 16,
   },
   modalContent: {
-    backgroundColor: '#FFFBEB',
-    borderRadius: 20,
+    backgroundColor: '#FFF7ED',
+    borderRadius: 24,
     padding: 24,
     maxHeight: '90%',
+    borderColor: '#F59E0B',
+    borderWidth: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
     color: '#D97706',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
+  },
+  errorContainer: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  imageContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  imagePreview: {
+    width: '100%',
+    height: 180,
+    borderRadius: 16,
+    marginBottom: 12,
+    backgroundColor: '#F3F4F6',
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FCD34D',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    width: '100%',
+    justifyContent: 'center',
+  },
+  uploadText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#92400E',
+    marginLeft: 8,
   },
   input: {
     backgroundColor: '#FFF',
     borderColor: '#FCD34D',
     borderWidth: 1,
-    borderRadius: 14,
-    paddingVertical: 14,
+    borderRadius: 12,
+    paddingVertical: 12,
     paddingHorizontal: 16,
     fontSize: 16,
-    marginBottom: 16,
+    marginBottom: 12,
+  },
+  inputError: {
+    borderColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
   },
   dropdownButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#FFF',
-    borderColor: '#FCD34D',
+    borderColor: '#FBBF24',
     borderWidth: 1,
-    borderRadius: 14,
-    paddingVertical: 14,
+    borderRadius: 12,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   dropdownText: {
     fontSize: 16,
@@ -437,9 +562,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     width: '80%',
-    maxHeight: '60%',
     borderWidth: 2,
     borderColor: '#F59E0B',
+    maxHeight: '60%',
   },
   categoryModalHeader: {
     flexDirection: 'row',
@@ -452,9 +577,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#D97706',
   },
-  categoryList: {
-    maxHeight: 300,
-  },
   categoryItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -463,10 +585,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 12,
     marginBottom: 8,
-    backgroundColor: '#FDE68A',
+    backgroundColor: '#FEF3C7',
   },
   categoryItemSelected: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: '#FCD34D',
   },
   categoryItemText: {
     fontSize: 16,
@@ -495,58 +617,81 @@ const styles = StyleSheet.create({
   },
   checkboxBoxChecked: {
     backgroundColor: '#D97706',
-    borderColor: '#D97706',
+  },
+  sectionHeader: {
+    fontWeight: '700',
+    fontSize: 18,
+    marginBottom: 12,
+    color: '#92400E',
   },
   variantGroup: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 12,
+    padding: 12,
     marginBottom: 12,
+  },
+  addVariantButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  addVariantText: {
+    color: '#D97706',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  removeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EF4444',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginTop: 8,
+    alignSelf: 'flex-end',
+  },
+  removeButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+    marginLeft: 4,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 12,
+    marginTop: 16,
   },
   button: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
     borderRadius: 14,
-    elevation: 2,
-  },
-  saveButton: {
-    backgroundColor: '#F59E0B',
-    marginLeft: 10,
+    minWidth: 100,
+    alignItems: 'center',
   },
   cancelButton: {
     backgroundColor: '#E5E7EB',
   },
+  saveButton: {
+    backgroundColor: '#F59E0B',
+    marginLeft: 12,
+  },
+  buttonDisabled: {
+    backgroundColor: '#D1D5DB',
+  },
   buttonText: {
     fontWeight: '700',
     fontSize: 16,
+    color: '#1F2937',
+  },
+  saveButtonText: {
+    color: '#FFF',
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  errorText: {
-    color: '#EF4444',
-    textAlign: 'center',
-    marginBottom: 12,
-    fontSize: 16,
-  },
-  uploadButton: {
-    backgroundColor: '#FDE68A',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#FBBF24',
-  },
-  uploadText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#92400E',
   },
 });

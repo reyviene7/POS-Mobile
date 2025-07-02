@@ -1,11 +1,13 @@
 import axios from 'axios';
 import Constants from 'expo-constants';
 
+const extra = Constants.expoConfig?.extra || Constants.manifest?.extra;
+
 export const CloudinaryConfig = {
-  CLOUD_NAME: Constants.expoConfig?.extra?.cloudinaryCloudName,
-  API_KEY: Constants.expoConfig?.extra?.cloudinaryApiKey,
-  UPLOAD_PRESET: Constants.expoConfig?.extra?.cloudinaryUploadPreset,
-  UPLOAD_URL: `https://api.cloudinary.com/v1_1/${Constants.expoConfig?.extra?.cloudinaryCloudName}/image/upload`,
+  CLOUD_NAME: extra?.cloudinaryCloudName,
+  API_KEY: extra?.cloudinaryApiKey,
+  UPLOAD_PRESET: extra?.cloudinaryUploadPreset,
+  UPLOAD_URL: `https://api.cloudinary.com/v1_1/${extra?.cloudinaryCloudName}/image/upload`,
 };
 
 export const uploadToCloudinary = async (uri: string) => {

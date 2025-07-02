@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import api from '../../../api';
 
 type CategoryModalProps = {
@@ -22,6 +22,7 @@ type CategoryModalProps = {
 type Addon = {
   id: number;
   name: string;
+  price: number;
 };
 
 export default function CategoryModal({
@@ -34,6 +35,7 @@ export default function CategoryModal({
   const [selectedAddonIds, setSelectedAddonIds] = useState<number[]>([]);
   const [addons, setAddons] = useState<Addon[]>([]);
   const [newAddonName, setNewAddonName] = useState('');
+  const [newAddonPrice, setNewAddonPrice] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
@@ -46,13 +48,22 @@ export default function CategoryModal({
         const fetchedAddons: Addon[] = response.data.map((addon: any) => ({
           id: addon.addonId,
           name: addon.addonName,
+          price: parseFloat(addon.price) || 0, // Convert BigDecimal to number, fallback to 0
         }));
         console.log('Fetched addons:', fetchedAddons);
         setAddons(fetchedAddons);
       } catch (err: any) {
         console.error('Error fetching addons:', err.message, err.response?.data);
         setError('Failed to load add-ons. Please try again.');
-        Alert.alert('Error', 'Failed to load add-ons. Please try again.');
+        Toast.show({
+          type: 'error',
+          text1: '⚠️ Error',
+          text2: 'Failed to load add-ons. Please try again.',
+          position: 'top',
+          visibilityTime: 3000,
+          autoHide: true,
+          topOffset: 40,
+        });
       } finally {
         setLoading(false);
       }
@@ -66,6 +77,7 @@ export default function CategoryModal({
       setName('');
       setSelectedAddonIds([]);
       setNewAddonName('');
+      setNewAddonPrice('');
     }
   }, [category]);
 
@@ -86,31 +98,82 @@ export default function CategoryModal({
 
   const handleAddNewAddon = async () => {
     if (!newAddonName.trim()) {
-      Alert.alert('Error', 'Add-on name is required.');
+      Toast.show({
+        type: 'error',
+        text1: '📋 Missing Add-on Name',
+        text2: 'Add-on name is required.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
       return;
     }
 
     if (addons.some((addon) => addon.name.toLowerCase() === newAddonName.trim().toLowerCase())) {
-      Alert.alert('Error', 'Add-on name already exists.');
+      Toast.show({
+        type: 'error',
+        text1: '📋 Duplicate Add-on',
+        text2: 'Add-on name already exists.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+      return;
+    }
+
+    const price = parseFloat(newAddonPrice);
+    if (!newAddonPrice.trim() || isNaN(price) || price < 0) {
+      Toast.show({
+        type: 'error',
+        text1: '💵 Invalid Add-on Price',
+        text2: 'Please provide a valid non-negative price.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
       return;
     }
 
     setLoading(true);
     try {
-      const response = await api.post('/addons', { addonName: newAddonName.trim() });
+      const response = await api.post('/addons', {
+        addonName: newAddonName.trim(),
+        price,
+      });
       const newAddon: Addon = {
         id: response.data.addonId,
         name: response.data.addonName,
+        price: parseFloat(response.data.price) || 0,
       };
       console.log('Created new addon:', newAddon);
 
       setAddons((prev) => [...prev, newAddon]);
       setSelectedAddonIds((prev) => [...prev, newAddon.id]);
       setNewAddonName('');
-      Alert.alert('Success', `Add-on "${newAddon.name}" created successfully!`);
+      setNewAddonPrice('');
+      Toast.show({
+        type: 'success',
+        text1: '✅ Add-on Created',
+        text2: `Add-on "${newAddon.name}" created successfully!`,
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     } catch (err: any) {
       console.error('Error creating add-on:', err.message, err.response?.data);
-      Alert.alert('Error', 'Failed to create add-on. Please try again.');
+      Toast.show({
+        type: 'error',
+        text1: '⚠️ Error',
+        text2: 'Failed to create add-on. Please try again.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
     } finally {
       setLoading(false);
     }
@@ -118,7 +181,15 @@ export default function CategoryModal({
 
   const handleSave = () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'Category name is required.');
+      Toast.show({
+        type: 'error',
+        text1: '📋 Missing Category Name',
+        text2: 'Category name is required.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
       return;
     }
     onSave({ name: name.trim(), addonIds: selectedAddonIds });
@@ -129,7 +200,10 @@ export default function CategoryModal({
       style={styles.addonItem}
       onPress={() => toggleAddon(item.id)}
     >
-      <Text style={styles.addonText}>{item.name}</Text>
+      <View style={styles.addonDetails}>
+        <Text style={styles.addonText}>{item.name}</Text>
+        <Text style={styles.addonPrice}>₱{item.price.toFixed(2)}</Text>
+      </View>
       <Text style={styles.checkbox}>
         {selectedAddonIds.includes(item.id) ? '☑' : '☐'}
       </Text>
@@ -167,6 +241,13 @@ export default function CategoryModal({
               value={newAddonName}
               onChangeText={setNewAddonName}
               style={[styles.input, styles.newAddonInput]}
+            />
+            <TextInput
+              placeholder="Price (₱)"
+              value={newAddonPrice}
+              onChangeText={setNewAddonPrice}
+              style={[styles.input, styles.newAddonPriceInput]}
+              keyboardType="numeric"
             />
             <TouchableOpacity
               style={styles.addButton}
@@ -240,15 +321,27 @@ const styles = StyleSheet.create({
   addonItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 12,
     backgroundColor: '#FFF',
     borderRadius: 8,
     marginBottom: 4,
   },
+  addonDetails: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   addonText: {
     fontSize: 14,
     color: '#1F2937',
+    flex: 1,
+  },
+  addonPrice: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginLeft: 8,
   },
   checkbox: {
     fontSize: 18,
@@ -259,6 +352,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   newAddonInput: {
+    flex: 2,
+    marginRight: 8,
+  },
+  newAddonPriceInput: {
     flex: 1,
     marginRight: 8,
   },

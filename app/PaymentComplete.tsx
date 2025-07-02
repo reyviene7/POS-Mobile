@@ -1,5 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -7,22 +8,97 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 export default function PaymentComplete() {
   const router = useRouter();
-  const { total, received, change, method } = useLocalSearchParams();
+  const { total, received, change, method, cart, customerName, customerNumber, customerAddress, notes, discount, deliveryFee, receiptNo: receivedReceiptNo } = useLocalSearchParams();
+  const [receiptNo, setReceiptNo] = useState(receivedReceiptNo as string || '000001');
 
-  const handleNewEntry = () => {
-    router.push('/PointOfSales'); // or wherever your sales start screen is
+  useEffect(() => {
+    Toast.show({
+      type: 'success',
+      text1: '🥪 Payment Successful!',
+      text2: 'Transaction completed successfully!',
+      position: 'top',
+      visibilityTime: 3000,
+      autoHide: true,
+      topOffset: 40,
+    });
+
+    const initializeReceiptNo = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('receiptNo');
+        if (stored) {
+          const num = parseInt(stored, 10);
+          setReceiptNo(num.toString().padStart(6, '0'));
+          console.log('PaymentComplete: Loaded receiptNo from AsyncStorage:', num.toString().padStart(6, '0'));
+        }
+        // Increment receipt number for the next transaction
+        const newNum = stored ? parseInt(stored, 10) + 1 : 2;
+        await AsyncStorage.setItem('receiptNo', newNum.toString());
+        console.log('PaymentComplete: Incremented receiptNo to:', newNum.toString().padStart(6, '0'));
+      } catch (error) {
+        console.error('Failed to manage receipt number:', error);
+      }
+    };
+    initializeReceiptNo();
+  }, []);
+
+  const handleNewEntry = async () => {
+    try {
+      await AsyncStorage.removeItem('cart');
+      console.log('Cart cleared in AsyncStorage');
+      router.replace({
+        pathname: '/PointOfSales',
+        params: {},
+      });
+    } catch (error) {
+      console.error('Failed to clear cart:', error);
+      router.replace({
+        pathname: '/PointOfSales',
+        params: {},
+      });
+    }
+  };
+
+  const handleBackToHome = () => {
+    router.replace({
+      pathname: '/',
+      params: {},
+    });
   };
 
   const handleOpenDrawer = () => {
-    // Navigate to cash drawer screen
-    alert('Cash drawer opened (simulated)');
+    Toast.show({
+      type: 'success',
+      text1: '🥪 Payment Successful!',
+      text2: 'Cash Drawer Opened',
+      position: 'top',
+      visibilityTime: 3000,
+      autoHide: true,
+      topOffset: 40,
+    });
   };
 
   const handlePrintReceipt = () => {
-    router.push('/ReceiptPrint');
+    router.push({
+      pathname: '/ReceiptPrint',
+      params: {
+        cart: cart || '',
+        customerName: customerName || '',
+        customerNumber: customerNumber || '',
+        customerAddress: customerAddress || '',
+        notes: notes || '',
+        discount: discount || '0',
+        deliveryFee: deliveryFee || '0',
+        total: total || '0',
+        received: received || '0',
+        method: method || '',
+        change: change || '0',
+        receiptNo,
+      },
+    });
   };
 
   return (
@@ -51,6 +127,9 @@ export default function PaymentComplete() {
         </TouchableOpacity>
         <TouchableOpacity style={[styles.actionButton, styles.new]} onPress={handleNewEntry}>
           <Text style={styles.buttonText}>NEW ENTRY</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.actionButton, styles.home]} onPress={handleBackToHome}>
+          <Text style={styles.buttonText}>BACK TO HOME</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -111,6 +190,9 @@ const styles = StyleSheet.create({
   },
   new: {
     backgroundColor: '#4F46E5',
+  },
+  home: {
+    backgroundColor: '#14B8A6',
   },
   buttonText: {
     color: 'white',

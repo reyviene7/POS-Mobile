@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
   Modal,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 type PaymentMethod = {
   paymentMethodId?: number;
@@ -31,7 +31,15 @@ export default function PaymentModal({ visible, onClose, payment, onSave }: Prop
 
   const handleSave = () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'Payment method name is required.');
+      Toast.show({
+        type: 'error',
+        text1: '📋 Missing Payment Method',
+        text2: 'Payment method name is required.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
       return;
     }
 
