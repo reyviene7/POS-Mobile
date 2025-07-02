@@ -6,11 +6,14 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <Image
-        source={require('@/assets/images/wizard.png')} // <-- Replace with your wizard image path
-        style={styles.wizardImage}
+        source="https://res.cloudinary.com/dzwjjpvdb/image/upload/v1750505959/EggCited/ixxau4ellammx0drebgo.png"
+        style={styles.logo}
         contentFit="contain"
       />
-      <Text style={styles.title}>THE POS WIZARD</Text>
+      <Text style={styles.tagline}>
+        “At EggCited, we take the humble egg sandwich to the next level ✨”
+      </Text>
+
       <Link href="/PointOfSales" asChild>
         <TouchableOpacity style={styles.button}>
           <Text style={styles.buttonText}>Point of Sales</Text>
@@ -25,53 +28,41 @@ export default function HomeScreen() {
   );
 }
 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFDEB',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
-  wizardImage: {
-    width: 200,
-    height: 200,
-    marginBottom: 24,
+  logo: {
+    width: 300,
+    height: 300,
+    marginBottom: 20,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
+  tagline: {
+    fontSize: 18,
+    color: '#374151',
+    fontStyle: 'italic',
     marginBottom: 32,
     textAlign: 'center',
+    paddingHorizontal: 12,
   },
   button: {
-    backgroundColor: '#C6F68D',
+    backgroundColor: '#FCD34D',
     borderRadius: 30,
     paddingVertical: 16,
     paddingHorizontal: 60,
     marginBottom: 16,
     width: '100%',
     alignItems: 'center',
+    elevation: 2,
   },
   buttonText: {
-    color: '#222',
+    color: '#1F2937',
     fontSize: 20,
-    fontWeight: '500',
-  },
-  appleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#000',
-    borderRadius: 30,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    marginTop: 8,
-    width: '100%',
-    justifyContent: 'center',
-  },
-  appleButtonText: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '500',
+    fontWeight: '600',
   },
 });

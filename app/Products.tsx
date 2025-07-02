@@ -5,28 +5,23 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 export default function Products() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>🧙 Products Management</Text>
-      <Text style={styles.subtitle}>Add or manage your products and categories below</Text>
+      <Text style={styles.title}>🥚 EggCited Products</Text>
+      <Text style={styles.subtitle}>
+        Manage your menu and categories below
+      </Text>
 
       <View style={styles.grid}>
-        <Link href="/Addproduct" asChild>
-          <TouchableOpacity style={[styles.button, styles.yellow]}>
-            <Text style={styles.buttonIcon}>➕</Text>
-            <Text style={styles.buttonText}>Add Product</Text>
-          </TouchableOpacity>
-        </Link>
-
         <Link href="/Productlist" asChild>
-          <TouchableOpacity style={[styles.button, styles.blue]}>
-            <Text style={styles.buttonIcon}>📦</Text>
+          <TouchableOpacity style={[styles.button, styles.listButton]}>
+            <Text style={styles.icon}>📦</Text>
             <Text style={styles.buttonText}>All Products</Text>
           </TouchableOpacity>
         </Link>
 
         <Link href="/Categorylist" asChild>
-          <TouchableOpacity style={[styles.button, styles.blue]}>
-            <Text style={styles.buttonIcon}>📦</Text>
-            <Text style={styles.buttonText}>All Category</Text>
+          <TouchableOpacity style={[styles.button, styles.categoryButton]}>
+            <Text style={styles.icon}>📁</Text>
+            <Text style={styles.buttonText}>All Categories</Text>
           </TouchableOpacity>
         </Link>
       </View>
@@ -37,60 +32,60 @@ export default function Products() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#FFFBEB', // light egg shell
     padding: 24,
-    justifyContent: 'flex-start',
+    paddingTop: 48,
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
-    color: '#4338CA',
+    fontWeight: '800',
+    color: '#F59E0B', // yolk
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   subtitle: {
     fontSize: 16,
-    color: '#4B5563',
+    color: '#7C3AED', // purple hint for fun
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: 36,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 16,
+    gap: 12,
   },
   button: {
-    width: '48%', // Two buttons per row for now, but flexible for more
+    width: '48%',
     aspectRatio: 1,
-    borderRadius: 20,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 6, // Increased for better shadow effect
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
     marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
   },
-  yellow: {
-    backgroundColor: '#FDE68A', // Add Product: Yellow
+  addButton: {
+    backgroundColor: '#FDE68A', // sunny yellow
   },
-  blue: {
-    backgroundColor: '#93C5FD', // All Products: Blue
+  listButton: {
+    backgroundColor: '#FCD34D', // golden yellow
   },
-  green: {
-    backgroundColor: '#A7F3D0', // Add Category: Green
+  categoryButton: {
+    backgroundColor: '#FDBA74', // orange
   },
-  buttonIcon: {
-    fontSize: 32,
+  icon: {
+    fontSize: 34,
     marginBottom: 8,
-    color: '#1E293B',
+    color: '#1F2937',
   },
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
+    color: '#1F2937',
     textAlign: 'center',
   },
 });

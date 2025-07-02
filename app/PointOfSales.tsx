@@ -1,6 +1,9 @@
-import { Link } from 'expo-router'; // Using expo-router for navigation
-import React, { useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Link, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  Animated,
+  FlatList,
   Image,
   Modal,
   Pressable,
@@ -11,136 +14,294 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-
-import rawProductsData from '../src/scripts/products.json';
-
-type Variant = {
-  size: string;
-  price: number;
-  quantity: number;
-};
+import Toast from 'react-native-toast-message';
+import api from '../api';
 
 type Product = {
-  name: string;
-  price?: number;
-  quantity?: number;
-  variants?: Variant[];
-  flavors?: string[];
-  image?: string;
+  productId: string;
+  productName: string;
+  categoryName: string;
+  size: string | null;
+  price: number;
+  image: string | null;
+  flavorName: string | null;
 };
 
-type Category = {
-  name: string;
-  products: Product[];
-  addons?: string[];
+type GroupedProduct = {
+  productName: string;
+  categoryName: string;
+  variants: Product[];
 };
 
-type ProductsData = {
-  store: string;
-  categories: Category[];
+type Addon = {
+  addonId: number;
+  addonName: string;
+  categoryName: string;
+  categoryId: number;
+  price: number;
 };
 
 type CartItem = {
-  product: any;
+  product: Product;
   quantity: number;
-  addons: { [key: string]: number };
+  addons: { [addonId: string]: number };
+  addonDetails: Addon[];
 };
 
-const productsData: ProductsData = rawProductsData;
-const categories = ['All', ...productsData.categories.map(c => c.name)];
+const defaultImage = 'https://res.cloudinary.com/dzwjjpvdb/image/upload/v1750703171/EggCited/duaybsrpbbbbioafm3yo.jpg';
 
 export default function PointOfSales() {
+  const { cart: cartString } = useLocalSearchParams();
+  const [groupedProducts, setGroupedProducts] = useState<GroupedProduct[]>([]);
+  const [addons, setAddons] = useState<Addon[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [selectedProductGroup, setSelectedProductGroup] = useState<GroupedProduct | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [addonQuantities, setAddonQuantities] = useState<{ [key: string]: number }>({});
-  const [cart, setCart] = useState<CartItem[]>([]); // Track cart items
+  const [addonQuantities, setAddonQuantities] = useState<{ [addonId: string]: number }>({});
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showScrollPrompt, setShowScrollPrompt] = useState(true);
+  const scrollY = useRef(new Animated.Value(0)).current;
 
-  const flattenedProducts = productsData.categories.flatMap(category => {
-    return category.products.flatMap(product => {
-      if (product.variants) {
-        return product.variants.map(variant => ({
-          name: `${product.name} - ${variant.size}`,
-          price: variant.price,
-          quantity: variant.quantity,
-          category: category.name,
-          image: product.image || null,
-          baseName: product.name,
-        }));
-      } else {
-        return [{
-          name: product.name,
-          price: product.price || 0,
-          quantity: product.quantity || 0,
-          category: category.name,
-          image: product.image || null,
-          baseName: product.name,
-        }];
-      }
-    });
+  const scrollPromptOpacity = scrollY.interpolate({
+    inputRange: [0, 30],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
   });
 
-  const filteredProducts =
-    selectedCategory === 'All'
-      ? flattenedProducts
-      : flattenedProducts.filter(p => p.category === selectedCategory);
+  useEffect(() => {
+    const initializeCart = async () => {
+      try {
+        console.log('PointOfSales: cartString received:', cartString);
+        if (cartString) {
+          const parsedCart =
+            typeof cartString === 'string'
+              ? JSON.parse(cartString)
+              : Array.isArray(cartString) && cartString.length > 0
+              ? JSON.parse(cartString[0])
+              : [];
+          setCart(parsedCart);
+          console.log('PointOfSales: Cart set from cartString:', parsedCart);
+        } else {
+          await AsyncStorage.removeItem('cart');
+          setCart([]);
+          console.log('PointOfSales: Cart cleared and set to []');
+        }
+        const storedCart = await AsyncStorage.getItem('cart');
+        console.log('PointOfSales: AsyncStorage cart after init:', storedCart);
+      } catch (error) {
+        console.error('Failed to initialize cart:', error);
+        setCart([]);
+      }
+    };
+    initializeCart();
+    fetchData();
+  }, [cartString]);
 
-  const getDefaultImage = (category: string) => {
-    switch (category) {
-      case 'Sandwiches':
-        return require('../assets/images/default-product.jpg');
-      case 'Drinks':
-        return require('../assets/images/default-drink.jpg');
-      default:
-        return require('../assets/images/default-product.jpg');
+  useEffect(() => {
+    if (selectedProductGroup && selectedProductGroup.variants.length === 1) {
+      setSelectedVariant(selectedProductGroup.variants[0]);
+    } else {
+      setSelectedVariant(null);
+    }
+  }, [selectedProductGroup]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const productResponse = await api.get('/products/with-price');
+      const apiProducts = productResponse.data;
+      if (!Array.isArray(apiProducts)) {
+        throw new Error('Products response is not an array');
+      }
+
+      const mappedProducts: Product[] = apiProducts.map((product: any) => ({
+        productId: product.productId.toString(),
+        productName: product.productName || 'Unknown Product',
+        categoryName: product.categoryName || 'Uncategorized',
+        size: product.size || null,
+        price: Number(product.price) || 0,
+        image: product.image || null,
+        flavorName: product.flavorName || null,
+      }));
+
+      // Group products by productName
+      const productMap = new Map<string, GroupedProduct>();
+      mappedProducts.forEach((product) => {
+        if (!productMap.has(product.productName)) {
+          productMap.set(product.productName, {
+            productName: product.productName,
+            categoryName: product.categoryName,
+            variants: [],
+          });
+        }
+        productMap.get(product.productName)!.variants.push(product);
+      });
+
+      const grouped = Array.from(productMap.values());
+      setGroupedProducts(grouped);
+
+      const addonResponse = await api.get('/categories/with-addons');
+      const apiAddons = addonResponse.data;
+      if (!Array.isArray(apiAddons)) {
+        throw new Error('Add-ons response is not an array');
+      }
+
+      const mappedAddons: Addon[] = apiAddons.map((addon: any) => ({
+        addonId: addon.addonId,
+        addonName: addon.addonName,
+        categoryName: addon.categoryName,
+        categoryId: addon.categoryId,
+        price: Number(addon.price) || 0,
+      }));
+
+      setAddons(mappedAddons);
+      const uniqueCategories = ['All', ...new Set(mappedAddons.map((addon: Addon) => addon.categoryName))];
+      setCategories(uniqueCategories);
+
+      Toast.show({
+        type: 'success',
+        text1: '🥪 Freshly Loaded!',
+        text2: 'Menu and add-ons loaded successfully!',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+    } catch (error: any) {
+      console.error('Fetch error:', error.message, error.response?.data, error.response?.status);
+      Toast.show({
+        type: 'error',
+        text1: '🍞😣 Oh No!',
+        text2: error.response?.status === 404 ? 'API endpoint not found.' : 'Failed to load menu.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getAddonsForCategory = (category: string): string[] => {
-    const cat = productsData.categories.find(c => c.name === category);
-    return cat?.addons || [];
+  const filteredProducts =
+    selectedCategory === 'All'
+      ? groupedProducts
+      : groupedProducts.filter((p) => p.categoryName === selectedCategory);
+
+  const getAddonsForCategory = (categoryName: string): Addon[] => {
+    return addons.filter((addon) => addon.categoryName === categoryName);
   };
 
-  const toggleAddon = (addon: string) => {
-    setAddonQuantities(prev => ({
+  const toggleAddon = (addonId: number) => {
+    setAddonQuantities((prev) => ({
       ...prev,
-      [addon]: prev[addon] ? prev[addon] + 1 : 1,
+      [addonId]: prev[addonId] ? prev[addonId] + 1 : 1,
     }));
   };
 
-  const decreaseAddonQuantity = (addon: string) => {
-    setAddonQuantities(prev => {
-      const newQuantity = (prev[addon] || 1) - 1;
+  const decreaseAddonQuantity = (addonId: number) => {
+    setAddonQuantities((prev) => {
+      const newQuantity = (prev[addonId] || 1) - 1;
       if (newQuantity <= 0) {
-        const { [addon]: _, ...rest } = prev;
+        const { [addonId]: _, ...rest } = prev;
         return rest;
       }
       return {
         ...prev,
-        [addon]: newQuantity,
+        [addonId]: newQuantity,
       };
     });
   };
 
-  const addToCart = () => {
-    if (!selectedProduct) return;
-    setCart(prev => [
-      ...prev,
-      { product: selectedProduct, quantity, addons: { ...addonQuantities } },
-    ]);
-    setSelectedProduct(null);
+  const addToCart = async () => {
+    if (!selectedVariant) {
+      Toast.show({
+        type: 'error',
+        text1: '📋 No Variant Selected',
+        text2: 'Please select a product variant.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+      return;
+    }
+    const selectedAddons = getAddonsForCategory(selectedVariant.categoryName).filter(
+      (addon) => addonQuantities[addon.addonId]
+    );
+    const newCartItem = {
+      product: selectedVariant,
+      quantity,
+      addons: { ...addonQuantities },
+      addonDetails: selectedAddons.map(({ addonId, addonName, price, categoryName, categoryId }) => ({
+        addonId,
+        addonName,
+        price,
+        categoryName,
+        categoryId,
+      })),
+    };
+    const newCart = [...cart, newCartItem];
+    setCart(newCart);
+    try {
+      await AsyncStorage.setItem('cart', JSON.stringify(newCart));
+      console.log('PointOfSales: Cart saved to AsyncStorage:', newCart);
+      Toast.show({
+        type: 'success',
+        text1: '✅ Added to Cart',
+        text2: `${selectedVariant.productName} ${selectedVariant.size ? `(${selectedVariant.size})` : ''} ${selectedVariant.flavorName ? `- ${selectedVariant.flavorName}` : ''} added!`,
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+    } catch (error) {
+      console.error('Failed to save cart to AsyncStorage:', error);
+      Toast.show({
+        type: 'error',
+        text1: '⚠️ Error',
+        text2: 'Failed to add to cart.',
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 40,
+      });
+    }
+    setSelectedProductGroup(null);
+    setSelectedVariant(null);
     setQuantity(1);
     setAddonQuantities({});
+  };
+
+  const handleAdjustQuantity = async (index: number, change: number) => {
+    const newCart = [...cart];
+    const newQuantity = newCart[index].quantity + change;
+    if (newQuantity <= 0) {
+      newCart.splice(index, 1);
+    } else {
+      newCart[index].quantity = newQuantity;
+    }
+    setCart(newCart);
+    try {
+      await AsyncStorage.setItem('cart', JSON.stringify(newCart));
+      console.log('PointOfSales: Cart updated in AsyncStorage:', newCart);
+    } catch (error) {
+      console.error('Failed to save cart to AsyncStorage:', error);
+    }
   };
 
   const calculateCartSummary = () => {
     let totalAmount = 0;
     let totalQuantity = 0;
 
-    cart.forEach(item => {
+    cart.forEach((item) => {
       const productCost = item.product.price * item.quantity;
-      const addonCost = Object.entries(item.addons).reduce((sum, [_, qty]) => {
-        return sum + qty * 5; // Assume ₱5 per add-on piece
+      const addonCost = Object.entries(item.addons).reduce((sum, [addonId, qty]) => {
+        const addon = item.addonDetails?.find((a) => a.addonId === Number(addonId));
+        return sum + (addon ? addon.price * qty : 0);
       }, 0);
       totalAmount += productCost + addonCost;
       totalQuantity += item.quantity;
@@ -151,26 +312,47 @@ export default function PointOfSales() {
 
   const { totalAmount, totalQuantity } = calculateCartSummary();
 
+  const renderVariantItem = ({ item }: { item: Product }) => (
+    <TouchableOpacity
+      style={[
+        styles.variantItem,
+        selectedVariant?.productId === item.productId &&
+        selectedVariant?.size === item.size &&
+        selectedVariant?.flavorName === item.flavorName &&
+        styles.variantItemActive,
+      ]}
+      onPress={() => setSelectedVariant(item)}
+    >
+      <Text style={styles.variantText}>
+        {item.size ? `${item.size}` : 'Standard'}
+        {item.flavorName ? ` - ${item.flavorName}` : ''}
+      </Text>
+      <Text style={styles.variantPrice}>₱{item.price}</Text>
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <Text style={styles.loadingText}>Loading Menu...</Text>
+        </View>
+      )}
       <View style={styles.filterRow}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterScroll}>
-          {categories.map(cat => (
+          contentContainerStyle={styles.filterScroll}
+        >
+          {categories.map((cat) => (
             <TouchableOpacity
               key={cat}
-              style={[
-                styles.filterButton,
-                selectedCategory === cat && styles.activeFilterButton,
-              ]}
-              onPress={() => setSelectedCategory(cat)}>
+              style={[styles.filterButton, selectedCategory === cat && styles.activeFilterButton]}
+              onPress={() => setSelectedCategory(cat)}
+            >
               <Text
-                style={[
-                  styles.filterText,
-                  selectedCategory === cat && styles.activeFilterText,
-                ]}>
+                style={[styles.filterText, selectedCategory === cat && styles.activeFilterText]}
+              >
                 {cat}
               </Text>
             </TouchableOpacity>
@@ -178,43 +360,107 @@ export default function PointOfSales() {
         </ScrollView>
       </View>
 
-      <ScrollView contentContainerStyle={styles.grid}>
-        {filteredProducts.map((p, index) => (
+      <Animated.ScrollView
+        contentContainerStyle={[styles.grid, { paddingBottom: 200 }]}
+        scrollEventThrottle={16}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: false,
+        })}
+      >
+        {filteredProducts.map((group) => (
           <TouchableOpacity
-            key={index}
+            key={group.productName}
             style={styles.card}
             onPress={() => {
-              setSelectedProduct(p);
+              setSelectedProductGroup(group);
               setQuantity(1);
               setAddonQuantities({});
-            }}>
+            }}
+          >
             <Image
-              source={p.image ? { uri: p.image } : getDefaultImage(p.category)}
+              source={{ uri: group.variants[0].image || defaultImage }}
               style={styles.image}
               resizeMode="cover"
             />
             <View style={styles.infoRow}>
               <View style={styles.leftCol}>
-                <Text style={styles.cardText}>{p.name}</Text>
-                <Text style={styles.priceText}>₱{p.price}</Text>
-              </View>
-              <View style={styles.rightCol}>
-                <Text style={styles.qtyText}>Qty: {p.quantity}</Text>
+                <Text style={styles.cardText}>{group.productName}</Text>
+                <Text style={styles.priceText}>
+                  {group.variants.length > 1
+                    ? `₱${Math.min(...group.variants.map((v) => v.price))} - ₱${Math.max(...group.variants.map((v) => v.price))}`
+                    : `₱${group.variants[0].price}`}
+                </Text>
               </View>
             </View>
           </TouchableOpacity>
         ))}
-        <View style={styles.scrollPrompt}>
+      </Animated.ScrollView>
+
+      {filteredProducts.length > 0 && (
+        <Animated.View style={[styles.scrollPrompt, { opacity: scrollPromptOpacity }]}>
           <Text style={styles.scrollText}>Scroll down to see more items</Text>
           <Text style={styles.scrollArrow}>↓</Text>
-        </View>
-      </ScrollView>
+        </Animated.View>
+      )}
+
+      <View style={styles.cartReviewContainer}>
+        <Text style={styles.cartReviewTitle}>Cart Summary</Text>
+        {cart.length > 0 ? (
+          cart.map((item, index) => (
+            <View
+              key={`${item.product.productId}-${item.product.size || ''}-${item.product.flavorName || ''}`}
+              style={styles.cartItem}
+            >
+              <View style={styles.cartItemDetails}>
+                <Text style={styles.cartItemText}>
+                  {item.product.productName} {item.product.size ? `(${item.product.size})` : ''}{' '}
+                  {item.product.flavorName ? `- ${item.product.flavorName}` : ''}
+                </Text>
+                {Object.entries(item.addons).map(([addonId, qty]) => {
+                  const addon = item.addonDetails?.find((a) => a.addonId === Number(addonId));
+                  return addon ? (
+                    <Text key={addonId} style={styles.cartAddonText}>
+                      {addon.addonName} x{qty} (₱{addon.price * qty})
+                    </Text>
+                  ) : null;
+                })}
+                <Text style={styles.cartSubtotal}>
+                  Subtotal: ₱{(
+                    item.product.price * item.quantity +
+                    Object.entries(item.addons).reduce((sum, [addonId, qty]) => {
+                      const addon = item.addonDetails?.find((a) => a.addonId === Number(addonId));
+                      return sum + (addon ? addon.price * qty : 0);
+                    }, 0)
+                  ).toFixed(2)}
+                </Text>
+              </View>
+              <View style={styles.quantityContainer}>
+                <TouchableOpacity
+                  style={styles.quantityButton}
+                  onPress={() => handleAdjustQuantity(index, -1)}
+                >
+                  <Text style={styles.quantityButtonText}>-</Text>
+                </TouchableOpacity>
+                <Text style={styles.quantityText}>{item.quantity}</Text>
+                <TouchableOpacity
+                  style={styles.quantityButton}
+                  onPress={() => handleAdjustQuantity(index, 1)}
+                >
+                  <Text style={styles.quantityButtonText}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.emptyCartText}>No items in cart</Text>
+        )}
+      </View>
 
       <View style={styles.previewContainer}>
         <Link
           href={{
             pathname: '/ConfirmOrder',
-            query: { cart: JSON.stringify(cart) }, // Pass cart as a query parameter
+            params: { cart: JSON.stringify(cart) },
           }}
           asChild
         >
@@ -232,63 +478,98 @@ export default function PointOfSales() {
         </View>
       </View>
 
-      {selectedProduct && (
+      {selectedProductGroup && (
         <Modal
           animationType="slide"
           transparent={true}
-          visible={!!selectedProduct}
-          onRequestClose={() => setSelectedProduct(null)}>
+          visible={!!selectedProductGroup}
+          onRequestClose={() => {
+            setSelectedProductGroup(null);
+            setSelectedVariant(null);
+          }}
+        >
           <View style={styles.modalBackground}>
             <View style={styles.modalContent}>
               <TouchableOpacity
                 style={styles.closeButton}
-                onPress={() => setSelectedProduct(null)}>
+                onPress={() => {
+                  setSelectedProductGroup(null);
+                  setSelectedVariant(null);
+                }}
+              >
                 <Text style={styles.closeText}>Back</Text>
               </TouchableOpacity>
 
-              <Text style={styles.modalTitle}>{selectedProduct.name}</Text>
-              <Text style={styles.modalPrice}>₱{selectedProduct.price}</Text>
+              <Text style={styles.modalTitle}>{selectedProductGroup.productName}</Text>
 
-              <View style={styles.quantityRow}>
-                <TouchableOpacity onPress={() => setQuantity(q => Math.max(1, q - 1))}>
-                  <Text style={styles.qtyBtn}>-</Text>
-                </TouchableOpacity>
-                <Text style={styles.quantityText}>{quantity}</Text>
-                <TouchableOpacity onPress={() => setQuantity(q => q + 1)}>
-                  <Text style={styles.qtyBtn}>+</Text>
-                </TouchableOpacity>
-              </View>
+              {selectedProductGroup.variants.length > 1 && (
+                <>
+                  <Text style={styles.modalSubtitle}>Select a variant:</Text>
+                  <FlatList
+                    data={selectedProductGroup.variants}
+                    keyExtractor={(item) =>
+                      `${item.productId}-${item.size || ''}-${item.flavorName || ''}`
+                    }
+                    renderItem={renderVariantItem}
+                    style={styles.variantList}
+                  />
+                </>
+              )}
 
-              {getAddonsForCategory(selectedProduct.category).length > 0 && (
-                <View style={styles.addonContainer}>
-                  <Text style={styles.addonTitle}>Select Add-ons:</Text>
-                  <View style={styles.addonList}>
-                    {getAddonsForCategory(selectedProduct.category).map(addon => (
-                      <View key={addon} style={styles.addonItemWrapper}>
-                        <Pressable
-                          style={[
-                            styles.addonItem,
-                            (addonQuantities[addon] || 0) > 0 && styles.addonItemActive,
-                          ]}
-                          onPress={() => toggleAddon(addon)}>
-                          <Text style={styles.addonText}>{addon}</Text>
-                        </Pressable>
-                        {(addonQuantities[addon] || 0) > 0 && (
-                          <View style={styles.addonQuantityRow}>
-                            <Text style={styles.addonQuantityText}>
-                              {addonQuantities[addon]} pcs
-                            </Text>
-                            <TouchableOpacity
-                              onPress={() => decreaseAddonQuantity(addon)}
-                              style={styles.minusButton}>
-                              <Text style={styles.minusText}>-</Text>
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                      </View>
-                    ))}
+              {selectedVariant && (
+                <>
+                  <Text style={styles.modalPrice}>
+                    ₱{selectedVariant.price} (
+                    {selectedVariant.size ? `${selectedVariant.size}` : 'Standard'}
+                    {selectedVariant.flavorName ? ` - ${selectedVariant.flavorName}` : ''})
+                  </Text>
+
+                  <View style={styles.quantityRow}>
+                    <TouchableOpacity onPress={() => setQuantity((q) => Math.max(1, q - 1))}>
+                      <Text style={styles.qtyBtn}>-</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.modalQuantityText}>{quantity}</Text>
+                    <TouchableOpacity onPress={() => setQuantity((q) => q + 1)}>
+                      <Text style={styles.qtyBtn}>+</Text>
+                    </TouchableOpacity>
                   </View>
-                </View>
+
+                  {getAddonsForCategory(selectedProductGroup.categoryName).length > 0 && (
+                    <View style={styles.addonContainer}>
+                      <Text style={styles.addonTitle}>Select Add-ons:</Text>
+                      <View style={styles.addonList}>
+                        {getAddonsForCategory(selectedProductGroup.categoryName).map((addon) => (
+                          <View key={addon.addonId} style={styles.addonItemWrapper}>
+                            <Pressable
+                              style={[
+                                styles.addonItem,
+                                (addonQuantities[addon.addonId] || 0) > 0 && styles.addonItemActive,
+                              ]}
+                              onPress={() => toggleAddon(addon.addonId)}
+                            >
+                              <Text style={styles.addonText}>
+                                {addon.addonName} - ₱{addon.price}
+                              </Text>
+                            </Pressable>
+                            {(addonQuantities[addon.addonId] || 0) > 0 && (
+                              <View style={styles.addonQuantityRow}>
+                                <Text style={styles.addonQuantityText}>
+                                  {addonQuantities[addon.addonId]} pcs
+                                </Text>
+                                <TouchableOpacity
+                                  onPress={() => decreaseAddonQuantity(addon.addonId)}
+                                  style={styles.minusButton}
+                                >
+                                  <Text style={styles.minusText}>-</Text>
+                                </TouchableOpacity>
+                              </View>
+                            )}
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+                </>
               )}
 
               <TouchableOpacity style={styles.confirmButton} onPress={addToCart}>
@@ -305,9 +586,21 @@ export default function PointOfSales() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#FFFDEB',
     paddingHorizontal: 16,
     paddingTop: 12,
+    position: 'relative',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#F59E0B',
+    fontWeight: '600',
   },
   filterRow: {
     height: 48,
@@ -318,14 +611,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   filterButton: {
-    backgroundColor: '#E5E7EB',
+    backgroundColor: '#FEF9C3',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
     marginRight: 8,
   },
   activeFilterButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#F59E0B',
   },
   filterText: {
     fontSize: 14,
@@ -368,10 +661,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingRight: 4,
   },
-  rightCol: {
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-  },
   cardText: {
     fontSize: 14,
     fontWeight: '600',
@@ -381,11 +670,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6B7280',
     marginTop: 2,
-  },
-  qtyText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#111827',
   },
   modalBackground: {
     flex: 1,
@@ -408,18 +692,52 @@ const styles = StyleSheet.create({
   },
   closeText: {
     fontSize: 18,
-    color: '#4F46E5',
+    color: '#FBBF24',
     fontWeight: '600',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 8,
   },
   modalPrice: {
     fontSize: 16,
-    color: '#6B7280',
+    fontWeight: '600',
+    color: '#1F2937',
     marginBottom: 12,
+    textAlign: 'center',
+  },
+  variantList: {
+    maxHeight: 150,
+    marginBottom: 12,
+  },
+  variantItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 8,
+    marginBottom: 4,
+  },
+  variantItemActive: {
+    backgroundColor: '#F59E0B',
+  },
+  variantText: {
+    fontSize: 14,
+    color: '#1F2937',
+    flex: 1,
+  },
+  variantPrice: {
+    fontSize: 14,
+    color: '#6B7280',
   },
   quantityRow: {
     flexDirection: 'row',
@@ -430,9 +748,9 @@ const styles = StyleSheet.create({
   qtyBtn: {
     fontSize: 24,
     paddingHorizontal: 16,
-    color: '#4F46E5',
+    color: '#FBBF24',
   },
-  quantityText: {
+  modalQuantityText: {
     fontSize: 16,
     fontWeight: '600',
     marginHorizontal: 12,
@@ -456,15 +774,15 @@ const styles = StyleSheet.create({
   addonItem: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: '#FEF3C7',
     borderRadius: 16,
-    marginRight: 6,
   },
   addonItemActive: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#F59E0B',
   },
   addonText: {
-    color: 'white',
+    color: '#1F2937',
+    fontWeight: '600',
   },
   addonQuantityRow: {
     flexDirection: 'row',
@@ -488,14 +806,15 @@ const styles = StyleSheet.create({
   },
   confirmButton: {
     marginTop: 12,
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#F59E0B',
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: 'center',
   },
   confirmText: {
-    color: 'white',
-    fontWeight: '600',
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   previewContainer: {
     flexDirection: 'row',
@@ -512,16 +831,15 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   reviewButton: {
-    backgroundColor: '#4F46E5',
-    marginLeft: 12,
-    paddingVertical: 8,
+    backgroundColor: '#FBBF24',
+    paddingVertical: 10,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   reviewText: {
-    color: 'white',
+    color: '#fff',
+    fontWeight: 'bold',
     fontSize: 14,
-    fontWeight: '600',
   },
   totalSection: {
     flex: 1,
@@ -554,18 +872,93 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   scrollPrompt: {
+    position: 'absolute',
+    bottom: 190,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: 10,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderRadius: 20,
+    marginHorizontal: 60,
+    zIndex: 10,
+    elevation: 3,
   },
   scrollText: {
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: '500',
     color: '#6B7280',
   },
   scrollArrow: {
+    fontSize: 14,
+    marginLeft: 6,
+    color: '#4B5563',
+  },
+  cartReviewContainer: {
+    backgroundColor: '#F0FDF4',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 80,
+  },
+  cartReviewTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  cartItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  cartItemDetails: {
+    flex: 1,
+  },
+  cartItemText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  cartAddonText: {
     fontSize: 12,
     color: '#6B7280',
-    marginLeft: 5,
+    marginTop: 4,
+  },
+  cartSubtotal: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#B91C1C',
+    marginTop: 4,
+  },
+  quantityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  quantityButton: {
+    padding: 6,
+    backgroundColor: '#F59E0B',
+    borderRadius: 8,
+  },
+  quantityButtonText: {
+    fontSize: 16,
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  quantityText: {
+    fontSize: 14,
+    color: '#1F2937',
+    marginHorizontal: 8,
+    fontWeight: '600',
+  },
+  emptyCartText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    marginVertical: 12,
   },
 });

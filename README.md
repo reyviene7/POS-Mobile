@@ -1,50 +1,71 @@
-# Welcome to your Expo app 👋
+# 🥪 EggCited POS & Inventory System 📱
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**EggCited** is a mobile Point-of-Sale and Inventory Management system built specifically for **EggCited Korean EggDrop Sandwiches** — designed to streamline ordering, manage stock, and handle daily sales with simplicity and style.
 
-## Get started
+---
 
-1. Install dependencies
+## 📦 Project Overview
 
-   ```bash
-   npm install
-   ```
+This application provides a complete mobile POS experience tailored for small food businesses. Built using **React Native with Expo**, it enables staff to manage orders, track inventory, and generate shift-based sales reports — all within an intuitive and friendly UI that fits the cozy and modern EggCited brand.
 
-2. Start the app
+---
 
-   ```bash
-   npx expo start
-   ```
+## ✨ Features
 
-In the output, you'll find options to open the app in a
+### 🍳 Point of Sale (POS)
+- Select products and build customer orders
+- Choose payment methods (e.g., Cash, GCash, etc.)
+- Accept payment and calculate change with bill selection
+- View detailed order receipt on payment completion
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### 📊 Sales Management
+- View shift summary reports with order breakdown
+- Review complete sales history with total sales calculations
+- Access detailed order modal with itemized receipt
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### 📦 Inventory Management
+- Real-time ingredient stock tracking
+- Add or deduct quantities with stock-in/stock-out actions
+- Filter/search ingredients for faster inventory edits
 
-## Get a fresh project
+### 📈 Sales Visualization
+- View sales trends in a compact chart for quick business insights
 
-When you're ready, run:
+---
+
+## 🛠 Tech Stack
+
+| Tool            | Purpose                          |
+|-----------------|----------------------------------|
+| React Native    | Mobile app framework             |
+| Expo            | Easy development & deployment   |
+| TypeScript      | Safer and scalable codebase      |
+| React Navigation| App routing                      |
+| SVG Charts      | Lightweight sales graph          |
+| JSON Storage    | Simulated local data (for demo)  |
+
+---
+
+## 📱 UI Design Language
+
+- Soft warm tones (yellows, oranges, and greens) inspired by **egg and sandwich aesthetics**
+- Friendly icons and bold text for quick readability
+- Touch-friendly controls and responsive layout
+- DaisyUI-inspired style adapted for mobile
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js & npm
+- Expo CLI (`npm install -g expo-cli`)
+- Mobile emulator or Expo Go app on device
+
+### Setup
 
 ```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+git clone https://github.com/your-username/eggcited-pos-mobile.git
+cd eggcited-pos-mobile
+npm install
+expo start
