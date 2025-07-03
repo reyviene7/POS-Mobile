@@ -58,6 +58,7 @@ export default function PaymentModal({ visible, onClose, payment, onSave }: Prop
           </Text>
           <TextInput
             placeholder="e.g., Cash, GCash, Maya"
+            placeholderTextColor="#4B5563"
             style={styles.input}
             value={name}
             onChangeText={setName}

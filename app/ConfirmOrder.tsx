@@ -347,12 +347,14 @@ export default function ConfirmOrder() {
           <TextInput
             style={styles.input}
             placeholder="Customer's name"
+            placeholderTextColor="#4B5563"
             value={customerName}
             onChangeText={setCustomerName}
           />
           <TextInput
             style={styles.input}
             placeholder="Customer's number"
+            placeholderTextColor="#4B5563"
             value={customerNumber}
             onChangeText={setCustomerNumber}
             keyboardType="phone-pad"
@@ -360,12 +362,14 @@ export default function ConfirmOrder() {
           <TextInput
             style={styles.input}
             placeholder="Customer's address"
+            placeholderTextColor="#4B5563"
             value={customerAddress}
             onChangeText={setCustomerAddress}
           />
           <TextInput
             style={styles.input}
             placeholder="Notes"
+            placeholderTextColor="#4B5563"
             value={notes}
             onChangeText={setNotes}
             multiline
@@ -390,6 +394,7 @@ export default function ConfirmOrder() {
             <TextInput
               style={styles.modalInput}
               placeholder="Enter discount amount (₱)"
+              placeholderTextColor="#4B5563"
               value={tempDiscount}
               onChangeText={setTempDiscount}
               keyboardType="numeric"
@@ -425,6 +430,7 @@ export default function ConfirmOrder() {
             <TextInput
               style={styles.modalInput}
               placeholder="Enter delivery fee (₱)"
+              placeholderTextColor="#4B5563"
               value={tempDeliveryFee}
               onChangeText={setTempDeliveryFee}
               keyboardType="numeric"

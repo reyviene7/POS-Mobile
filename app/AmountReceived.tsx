@@ -279,6 +279,7 @@ export default function AmountReceived() {
             <TextInput
               style={styles.input}
               placeholder="Enter amount received"
+              placeholderTextColor="#4B5563"
               keyboardType="numeric"
               value={received}
               onChangeText={handleInputChange}

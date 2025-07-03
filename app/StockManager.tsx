@@ -45,8 +45,12 @@ export default function StockManager() {
         unit: stock.unit || 'pcs',
       }));
       console.log('Fetched stocks:', fetchedStocks);
-      setStocks(fetchedStocks);
-      setFilteredStocks(fetchedStocks);
+      const sortedStocks = fetchedStocks.sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
+      setStocks(sortedStocks);
+      setFilteredStocks(sortedStocks);
+
       if (!hasShownInitialToast) {
         Toast.show({
           type: 'success',
@@ -79,7 +83,11 @@ export default function StockManager() {
   const handleSearch = (q: string) => {
     setSearch(q);
     const key = q.toLowerCase();
-    setFilteredStocks(stocks.filter(i => i.name.toLowerCase().includes(key)));
+    const filtered = stocks.filter(i => i.name.toLowerCase().includes(key));
+    const sortedFiltered = filtered.sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+    setFilteredStocks(sortedFiltered);
   };
 
   const saveItem = async (item: StockItem) => {
@@ -218,6 +226,7 @@ export default function StockManager() {
       <TextInput
         style={styles.searchBar}
         placeholder="Search ingredients..."
+        placeholderTextColor="#4B5563"
         value={search}
         onChangeText={handleSearch}
       />

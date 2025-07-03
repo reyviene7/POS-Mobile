@@ -223,6 +223,7 @@ export default function CategoryModal({
           <Text style={styles.title}>{category ? 'Edit' : 'Add'} Category</Text>
           <TextInput
             placeholder="Category Name"
+            placeholderTextColor="#4B5563"
             value={name}
             onChangeText={setName}
             style={styles.input}
@@ -238,12 +239,14 @@ export default function CategoryModal({
           <View style={styles.newAddonContainer}>
             <TextInput
               placeholder="New Add-on Name"
+              placeholderTextColor="#4B5563"
               value={newAddonName}
               onChangeText={setNewAddonName}
               style={[styles.input, styles.newAddonInput]}
             />
             <TextInput
               placeholder="Price (₱)"
+              placeholderTextColor="#4B5563"
               value={newAddonPrice}
               onChangeText={setNewAddonPrice}
               style={[styles.input, styles.newAddonPriceInput]}
