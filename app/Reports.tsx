@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import Toast from 'react-native-toast-message';
+import DateRangeModal from '../src/components/modals/DateRangeModal';
 import { generateCashReportPDF } from '../src/components/reports/GenerateCashReport';
 import { generateCreditReportPDF } from '../src/components/reports/GenerateCreditReport';
 import { generateExpensesReportPDF } from '../src/components/reports/GenerateExpensesReport';
@@ -9,7 +10,8 @@ import { generateShiftReportPDF } from '../src/components/reports/GenerateShiftR
 
 export default function Reports() {
   const [loading, setLoading] = useState<string | null>(null);
-const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
+  const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
+  const [showDateRangeModal, setShowDateRangeModal] = useState(false);
 
   useEffect(() => {
     if (!hasShownInitialToast) {
@@ -27,11 +29,13 @@ const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
   }, [hasShownInitialToast]);
   
   const handleGenerate = async (type: string) => {
+    if (type === 'Sales History') {
+    setShowDateRangeModal(true);
+    return;
+    }
     setLoading(type);
     try {
-      if (type === 'Sales History') {
-        await generateSalesHistoryPDF();
-      } else if (type === 'Shift Summary') {
+      if (type === 'Shift Summary') {
         await generateShiftReportPDF();
       } else if (type === 'Cash Transactions') {
         await generateCashReportPDF();
@@ -69,6 +73,26 @@ const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
         autoHide: true,
         topOffset: 40,
       });
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleDateRangeConfirm = async (start: string, end: string) => {
+    setShowDateRangeModal(false);
+    setLoading('Sales History');
+    try {
+      await generateSalesHistoryPDF(start, end);
+      Toast.show({
+        type: 'success',
+        text1: '🥪 Yum!',
+        text2: `Sales History Report generated!`,
+        position: 'top',
+        visibilityTime: 3000,
+        topOffset: 40,
+      });
+    } catch (err) {
+      // already handled inside generateSalesHistoryPDF
     } finally {
       setLoading(null);
     }
@@ -138,6 +162,11 @@ const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
           <Text style={styles.reportText}>💸 Expenses Report</Text>
         )}
       </TouchableOpacity>
+      <DateRangeModal
+        visible={showDateRangeModal}
+        onClose={() => setShowDateRangeModal(false)}
+        onConfirm={handleDateRangeConfirm}
+      />
     </ScrollView>
   );
 }

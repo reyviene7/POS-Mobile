@@ -57,6 +57,7 @@ export default function ConfirmOrder() {
   const [tempDiscount, setTempDiscount] = useState('');
   const [tempDeliveryFee, setTempDeliveryFee] = useState('');
   const [receiptNo, setReceiptNo] = useState('000001');
+  const [showCustomerDetails, setShowCustomerDetails] = useState(false);
 
   useEffect(() => {
     const initialize = async () => {
@@ -338,11 +339,19 @@ export default function ConfirmOrder() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.detailsToggle}>
-          <Text style={styles.detailsToggleText}>Customer&apos;s Details and Notes (Optional)</Text>
-          <Text style={styles.detailsToggleArrow}>▼</Text>
+        <TouchableOpacity
+          style={styles.detailsToggle}
+          onPress={() => setShowCustomerDetails(!showCustomerDetails)}
+        >
+          <Text style={styles.detailsToggleText}>
+            Customer&apos;s Details and Notes (Optional)
+          </Text>
+          <Text style={styles.detailsToggleArrow}>
+            {showCustomerDetails ? '▲' : '▼'}
+          </Text>
         </TouchableOpacity>
 
+      {showCustomerDetails && (
         <View style={styles.detailsContainer}>
           <TextInput
             style={styles.input}
@@ -375,7 +384,8 @@ export default function ConfirmOrder() {
             multiline
           />
         </View>
-
+      )}
+      
         <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
           <Text style={styles.confirmText}>CONFIRM</Text>
         </TouchableOpacity>

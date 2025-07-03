@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Link, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -497,7 +498,7 @@ export default function PointOfSales() {
                   setSelectedVariant(null);
                 }}
               >
-                <Text style={styles.closeText}>Back</Text>
+                <Ionicons name="close" size={24} color="#FBBF24" />
               </TouchableOpacity>
 
               <Text style={styles.modalTitle}>{selectedProductGroup.productName}</Text>
@@ -688,7 +689,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     right: 10,
-    padding: 5,
+    zIndex: 10,
+    padding: 8,
   },
   closeText: {
     fontSize: 18,

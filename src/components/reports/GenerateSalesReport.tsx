@@ -29,17 +29,23 @@ interface SalesHistoryDetailedProjection {
   payment_method: string;
 }
 
-export const generateSalesHistoryPDF = async () => {
+export const generateSalesHistoryPDF = async (startDate?: string, endDate?: string) => {
   // Fetch sales history from API and process data locally
   const fetchSalesHistory = async (): Promise<Sale[]> => {
     try {
       const response = await api.get('/sales-history/detailed');
-      console.log('Sales history response:', response.data);
       const detailedSales: SalesHistoryDetailedProjection[] = response.data;
+
+      // Filter by date range if provided
+      const filteredSales = detailedSales.filter((item) => {
+        const ts = new Date(item.timestamp);
+        return (!startDate || ts >= new Date(startDate)) &&
+              (!endDate || ts <= new Date(endDate));
+      });
 
       // Group by order_id to create Sale objects
       const salesMap = new Map<string, Sale>();
-      detailedSales.forEach((item) => {
+      filteredSales.forEach((item) => {
         const sale = salesMap.get(item.order_id) || {
           orderId: item.order_id,
           timestamp: item.timestamp,
