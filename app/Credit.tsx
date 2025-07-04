@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import Toast from 'react-native-toast-message';
 import api from '../api';
 import CreditModal from '../src/components/modals/CreditModal';
@@ -255,43 +256,43 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFDEB',
-    padding: 20,
-    paddingTop: 48 
+    paddingHorizontal: wp('5%'),
+    paddingTop: hp('5%'),
   },
   title: {
-    fontSize: 26,
+    fontSize: wp('6.5%'),
     fontWeight: 'bold',
     color: '#D97706',
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: hp('0.5%'),
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: wp('4%'),
     color: '#6B7280',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: hp('2%'),
   },
   button: {
     backgroundColor: '#FCD34D',
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 30,
+    borderRadius: wp('3%'),
+    paddingVertical: hp('1.8%'),
+    paddingHorizontal: wp('8%'),
     alignSelf: 'center',
-    marginBottom: 12,
+    marginBottom: hp('2%'),
     borderWidth: 1,
     borderColor: '#F59E0B',
   },
   buttonText: {
     color: '#92400E',
-    fontSize: 16,
+    fontSize: wp('4.2%'),
     fontWeight: '700',
   },
   card: {
     backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 14,
-    marginHorizontal: 12,
-    marginBottom: 14,
+    padding: wp('5%'),
+    borderRadius: wp('4%'),
+    marginHorizontal: wp('2%'),
+    marginBottom: hp('1.5%'),
     flexDirection: 'row',
     justifyContent: 'space-between',
     elevation: 2,
@@ -301,29 +302,29 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
   },
   orderId: {
-    fontSize: 16,
+    fontSize: wp('4.2%'),
     fontWeight: 'bold',
     color: '#1F2937',
-    marginBottom: 2,
+    marginBottom: hp('0.5%'),
   },
   customer: {
-    fontSize: 14,
+    fontSize: wp('3.8%'),
     color: '#374151',
-    marginBottom: 2,
+    marginBottom: hp('0.5%'),
   },
   timestamp: {
-    fontSize: 12,
+    fontSize: wp('3.2%'),
     color: '#6B7280',
-    marginBottom: 2,
+    marginBottom: hp('0.5%'),
   },
   due: {
-    fontSize: 13,
+    fontSize: wp('3.5%'),
     color: '#DC2626',
     fontWeight: '500',
-    marginBottom: 2,
+    marginBottom: hp('0.5%'),
   },
   balance: {
-    fontSize: 14,
+    fontSize: wp('3.8%'),
     fontWeight: '500',
     color: '#10B981',
   },
@@ -337,8 +338,9 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     textAlign: 'center',
-    marginTop: 40,
+    marginTop: hp('5%'),
     color: '#9CA3AF',
+    fontSize: wp('4%'),
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -349,7 +351,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#EF4444',
     textAlign: 'center',
-    marginBottom: 16,
-    fontSize: 16,
+    marginBottom: hp('2%'),
+    fontSize: wp('4%'),
   },
 });

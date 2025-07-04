@@ -14,6 +14,9 @@ interface Sale {
   orderId: string;
   timestamp: string;
   total: number;
+  discount: number;
+  deliveryFee: number;
+  grandTotal: number;
   items: SaleItem[];
 }
 
@@ -25,6 +28,8 @@ interface TodaySalesProjection {
   quantity: number;
   price: number;
   paymentMethod: string;
+  discount: number;
+  deliveryFee: number;
 }
 
 export const generateShiftReportPDF = async () => {
@@ -33,7 +38,17 @@ export const generateShiftReportPDF = async () => {
     try {
       const response = await api.get('/sales-history/today');
       console.log('Today sales response:', response.data);
-      const todaySales: TodaySalesProjection[] = response.data;
+      const todaySales: TodaySalesProjection[] = response.data.map((item: any) => ({
+        orderId: item.orderId,
+        timestamp: item.timestamp,
+        total: item.total,
+        productName: item.productName,
+        quantity: item.quantity,
+        price: item.price,
+        paymentMethod: item.paymentMethod,
+        discount: item.discount != null ? Number(item.discount) : 0,
+        deliveryFee: item.deliveryFee != null ? Number(item.deliveryFee) : 0,
+      }));
 
       // Group by orderId to create Sale objects
       const salesMap = new Map<string, Sale>();
@@ -41,7 +56,10 @@ export const generateShiftReportPDF = async () => {
         const sale = salesMap.get(item.orderId) || {
           orderId: item.orderId,
           timestamp: item.timestamp,
-          total: item.total,
+          total: 0,
+          discount: item.discount,
+          deliveryFee: item.deliveryFee,
+          grandTotal: 0,
           items: [],
         };
         sale.items.push({
@@ -49,10 +67,13 @@ export const generateShiftReportPDF = async () => {
           quantity: item.quantity,
           price: item.price,
         });
+        sale.total += item.quantity * item.price;
+        sale.grandTotal = sale.total - sale.discount + sale.deliveryFee; // Calculate grandTotal
         salesMap.set(item.orderId, sale);
       });
 
       const salesData = Array.from(salesMap.values());
+      console.log('Processed salesData:', salesData);
       return salesData;
     } catch (err: any) {
       console.error('Error fetching today sales:', err.message, err.response?.data);
@@ -82,7 +103,7 @@ export const generateShiftReportPDF = async () => {
       throw new Error('No sales data available.');
     }
 
-    const totalSales = salesData.reduce((sum, sale) => sum + sale.total, 0);
+    const totalSales = salesData.reduce((sum, sale) => sum + (sale.grandTotal || 0), 0);
     const totalItems = salesData.reduce(
       (sum, sale) => sum + sale.items.reduce((itemSum, item) => itemSum + item.quantity, 0),
       0
@@ -226,7 +247,10 @@ export const generateShiftReportPDF = async () => {
                 <th>Order ID</th>
                 <th>Date & Time</th>
                 <th>Items</th>
-                <th>Total (₱)</th>
+                <th>Subtotal (₱)</th>
+                <th>Discount (₱)</th>
+                <th>Delivery Fee (₱)</th>
+                <th>Grand Total (₱)</th>
               </tr>
             </thead>
             <tbody>
@@ -240,11 +264,14 @@ export const generateShiftReportPDF = async () => {
                         ${sale.items
                           .map(
                             (item: SaleItem) =>
-                              `${item.name} (Qty: ${item.quantity} @ ₱${item.price.toFixed(2)})`
+                              `${item.name} (Qty: ${item.quantity} @ ₱${(item.price || 0).toFixed(2)})`
                           )
                           .join('<br>')}
                       </td>
-                      <td>₱${sale.total.toFixed(2)}</td>
+                      <td>₱${(sale.total || 0).toFixed(2)}</td>
+                      <td>${sale.discount > 0 ? '-₱' + (sale.discount || 0).toFixed(2) : '₱0.00'}</td>
+                      <td>₱${(sale.deliveryFee || 0).toFixed(2)}</td>
+                      <td>₱${(sale.grandTotal || 0).toFixed(2)}</td>
                     </tr>
                   `
                 )

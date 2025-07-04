@@ -12,19 +12,18 @@ export default function RootLayout() {
         <View style={{ flex: 1 }}>
           <Stack
             screenOptions={({ route }) => {
-              // Disable header entirely on "index"
-              if (route.name === 'index') {
+              // Explicitly disable header for Login and index
+              if (route.name === 'Home' || route.name === 'index') {
                 return {
                   headerShown: false,
                 };
               }
-
               // Apply custom header styles for other screens
               return {
                 headerStyle: {
-                  backgroundColor: '#FCD34D',
+                  backgroundColor: '#FCD34D', // Buttery yellow
                 },
-                headerTintColor: '#431407',
+                headerTintColor: '#431407', // Toasted brown
                 headerTitleAlign: 'center',
                 headerTitle: ({ children, tintColor }) => (
                   <View style={styles.headerContainer}>
@@ -38,12 +37,14 @@ export default function RootLayout() {
                     <View style={styles.headerBorder} />
                   </View>
                 ),
+                headerShadowVisible: true,
               };
             }}
           >
-            <Stack.Screen name="index" options={{ title: 'Home' }} />
+            <Stack.Screen name="index" options={{ title: '🥖 EggCited Login', headerShown: false }} />
+            <Stack.Screen name="Home" options={{ title: '🥪 EggCited Home', headerShown: false }} />
             <Stack.Screen name="Inventory" options={{ title: '📦 Sandwich Inventory' }} />
-            <Stack.Screen name="PointOfSales" options={{ title: '🛒 Sandwich Shop' }} />
+            <Stack.Screen name="PointOfSales" options={{ title: '🛒 Sandwich Shop', gestureEnabled: false, }} />
             <Stack.Screen name="Products" options={{ title: '🧀 Manage Products' }} />
             <Stack.Screen name="Payment" options={{ title: '💰 Sandwich Payments' }} />
             <Stack.Screen name="Credit" options={{ title: '💳 Sandwich Credits' }} />
@@ -72,34 +73,38 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   headerBackground: {
     flex: 1,
-    backgroundColor: 'rgba(254, 243, 199, 0.95)',
-    borderBottomWidth: 2.5,
-    borderBottomColor: '#F59E0B',
+    backgroundColor: '#FCD34D', // Buttery yellow
   },
   headerBorder: {
     flex: 1,
-    borderRadius: 16,
-    borderTopLeftRadius: 8,
-    borderBottomRightRadius: 8,
+    borderRadius: 24,
+    borderTopLeftRadius: 12, // Bitten sandwich corner
+    borderBottomRightRadius: 12,
     borderWidth: 2.5,
-    borderColor: '#F59E0B',
+    borderColor: '#F59E0B', // Toasty crust
     shadowColor: '#431407',
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
   },
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  headerEmoji: {
+    fontSize: 24,
+    marginRight: 8,
   },
   headerTitle: {
     fontFamily: 'Comic Sans MS',
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
-    textShadowColor: 'rgba(0,0,0,0.2)',
+    color: '#431407',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 1,
+    textShadowRadius: 2,
   },
 });

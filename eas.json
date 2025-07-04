@@ -20,7 +20,7 @@
     "production": {
       "autoIncrement": true,
       "env": {
-        "API_BASE_URL": "http://159.89.204.175:8080",
+        "API_BASE_URL": "https://theposwizard.com/api",
         "CLOUDINARY_CLOUD_NAME": "dzwjjpvdb",
         "CLOUDINARY_API_KEY": "626448337993824",
         "CLOUDINARY_UPLOAD_PRESET": "EggCitedImages"

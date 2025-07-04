@@ -1,6 +1,10 @@
 import { Link } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  heightPercentageToDP as hp,
+  widthPercentageToDP as wp,
+} from 'react-native-responsive-screen';
 
 export default function Products() {
   return (
@@ -32,58 +36,57 @@ export default function Products() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFBEB', // light egg shell
-    padding: 24,
-    paddingTop: 48,
+    backgroundColor: '#FFFBEB',
+    paddingHorizontal: wp('4%'),
+    paddingTop: hp('6%'),
   },
   title: {
-    fontSize: 28,
+    fontSize: wp('7%'),
     fontWeight: '800',
-    color: '#F59E0B', // yolk
+    color: '#F59E0B',
     textAlign: 'center',
-    marginBottom: 6,
+    marginBottom: hp('1%'),
   },
   subtitle: {
-    fontSize: 16,
-    color: '#7C3AED', // purple hint for fun
+    fontSize: wp('4.2%'),
+    color: '#7C3AED',
     textAlign: 'center',
-    marginBottom: 36,
+    marginBottom: hp('4%'),
   },
   grid: {
     flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 12,
+    rowGap: hp('2%'), // only works on RN 0.73+
+    columnGap: wp('4%'), // only works on RN 0.73+
   },
   button: {
-    width: '48%',
+    width: wp('40%'),
     aspectRatio: 1,
-    borderRadius: 24,
+    borderRadius: wp('5%'),
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: hp('2%'),
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 4 },
     elevation: 5,
   },
-  addButton: {
-    backgroundColor: '#FDE68A', // sunny yellow
-  },
   listButton: {
-    backgroundColor: '#FCD34D', // golden yellow
+    backgroundColor: '#FCD34D',
   },
   categoryButton: {
-    backgroundColor: '#FDBA74', // orange
+    backgroundColor: '#FDBA74',
   },
   icon: {
-    fontSize: 34,
-    marginBottom: 8,
+    fontSize: wp('8%'),
+    marginBottom: hp('1%'),
     color: '#1F2937',
   },
   buttonText: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '600',
     color: '#1F2937',
     textAlign: 'center',

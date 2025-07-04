@@ -183,12 +183,14 @@ export default function CreditModal({ visible, onClose, credit, onSave }: Props)
           )}
           <TextInput
             placeholder="Customer Name"
+            placeholderTextColor="#4B5563"
             style={styles.input}
             value={customerName}
             onChangeText={setCustomerName}
           />
           <TextInput
             placeholder="Amount"
+            placeholderTextColor="#4B5563"
             style={styles.input}
             value={amount}
             onChangeText={setAmount}
@@ -196,6 +198,7 @@ export default function CreditModal({ visible, onClose, credit, onSave }: Props)
           />
           <TextInput
             placeholder="Paid amount (optional)"
+            placeholderTextColor="#4B5563"
             style={styles.input}
             value={paid}
             onChangeText={setPaid}

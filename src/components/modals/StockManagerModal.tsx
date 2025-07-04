@@ -85,12 +85,14 @@ export default function StockManagerModal({ visible, onClose, onSave, item }: Pr
           <TextInput
             style={styles.input}
             placeholder="Ingredient Name"
+            placeholderTextColor="#4B5563"
             value={name}
             onChangeText={setName}
           />
           <TextInput
             style={styles.input}
             placeholder="Quantity"
+            placeholderTextColor="#4B5563"
             keyboardType="numeric"
             value={quantity}
             onChangeText={setQuantity}
@@ -98,6 +100,7 @@ export default function StockManagerModal({ visible, onClose, onSave, item }: Pr
           <TextInput
             style={styles.input}
             placeholder="Unit (pcs, kg, etc.)"
+            placeholderTextColor="#4B5563"
             value={unit}
             onChangeText={setUnit}
           />

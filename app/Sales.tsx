@@ -1,6 +1,7 @@
 import { Link } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import SalesChart from './SalesChart';
 
 export default function Sales() {
@@ -37,35 +38,37 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFDEB',
-    padding: 24,
-    paddingTop: 48,
+    paddingHorizontal: wp('5%'),
+    paddingTop: hp('6%'),
   },
   title: {
-    fontSize: 26,
+    fontSize: wp('6.5%'),
     fontWeight: 'bold',
     color: '#B45309',
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: hp('0.5%'),
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: wp('4%'),
     color: '#6B7280',
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: hp('4%'),
   },
   grid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 16,
-    marginTop: 16,
+    flexWrap: 'wrap',
+    justifyContent: 'space-between', // Spread out cards
+    paddingHorizontal: wp('7%'),     // Side margin for center alignment
+    marginTop: hp('2%'),
   },
   card: {
-    flex: 1,
-    aspectRatio: 1,
-    borderRadius: 16,
+    width: wp('40%'),               // Fixed width (2 cards per row with space)
+    aspectRatio: 1,                 // Makes it square
+    borderRadius: wp('4%'),
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 4,
+    marginBottom: hp('2.5%'),       
+    backgroundColor: '#fff',
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 6,
@@ -73,18 +76,18 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   indigo: {
-    backgroundColor: '#C7D2FE', // Light indigo
+    backgroundColor: '#C7D2FE',
   },
   yellow: {
-    backgroundColor: '#FDE68A', // Warm yellow
+    backgroundColor: '#FDE68A',
   },
   icon: {
-    fontSize: 36,
-    marginBottom: 10,
+    fontSize: wp('9%'),
+    marginBottom: hp('1%'),
     color: '#1F2937',
   },
   label: {
-    fontSize: 16,
+    fontSize: wp('4.2%'),
     fontWeight: '600',
     color: '#1F2937',
     textAlign: 'center',

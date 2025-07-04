@@ -92,12 +92,14 @@ export default function ExpensesModal({ visible, onClose, expense, onSave }: Exp
           <TextInput
             style={styles.input}
             placeholder="Expense Type (e.g., Electrical Bill)"
+            placeholderTextColor="#4B5563"
             value={type}
             onChangeText={setType}
           />
           <TextInput
             style={styles.input}
             placeholder="Amount"
+            placeholderTextColor="#4B5563"
             value={amount}
             onChangeText={setAmount}
             keyboardType="numeric"
@@ -105,6 +107,7 @@ export default function ExpensesModal({ visible, onClose, expense, onSave }: Exp
           <TextInput
             style={styles.input}
             placeholder="Remarks (optional)"
+            placeholderTextColor="#4B5563"
             value={remarks}
             onChangeText={setRemarks}
             multiline

@@ -11,6 +11,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import {
+  heightPercentageToDP as hp,
+  widthPercentageToDP as wp,
+} from 'react-native-responsive-screen';
 import Toast from 'react-native-toast-message';
 import api from '../api';
 
@@ -111,23 +115,24 @@ export default function AmountReceived() {
     }
 
     try {
-      // Reset receiptNo daily
+      // Generate order ID
       const orderIdRes = await api.get('/sales-history/order-ids');
       const existingOrderIds: string[] = orderIdRes.data;
-
       const numericParts = existingOrderIds
-      .filter(id => /^SALE\d+$/.test(id))
-      .map(id => parseInt(id.replace('SALE', ''), 10));
+        .filter(id => /^SALE\d+$/.test(id))
+        .map(id => parseInt(id.replace('SALE', ''), 10));
       const nextReceiptNumber = numericParts.length > 0 ? Math.max(...numericParts) + 1 : 1;
       const formattedReceiptNo = nextReceiptNumber.toString().padStart(3, '0');
       const orderId = `SALE${formattedReceiptNo}`;
 
-      // Step 3: Build payload
+      // Build payload with discount and deliveryFee
       const orderDTO = {
         orderId,
         timestamp: new Date().toISOString(),
         total: parseFloat(payable.toFixed(2)),
         paymentMethodId: method === 'Cash' ? 1 : method === 'Credit' ? 2 : null,
+        discount: parseFloat(parsedDiscount.toFixed(2)), // Include discount
+        deliveryFee: parseFloat(parsedDeliveryFee.toFixed(2)), // Include deliveryFee
         items: cart.map(item => ({
           productName: `${item.product.productName}${item.product.size ? ` (${item.product.size})` : ''}${item.product.flavorName ? ` - ${item.product.flavorName}` : ''}`,
           quantity: item.quantity,
@@ -158,8 +163,8 @@ export default function AmountReceived() {
           customerNumber: customerNumber || '',
           customerAddress: customerAddress || '',
           notes: notes || '',
-          discount: parsedDiscount.toString(),
-          deliveryFee: parsedDeliveryFee.toString(),
+          discount: parsedDiscount.toFixed(2),
+          deliveryFee: parsedDeliveryFee.toFixed(2),
           total: payable.toFixed(2),
           received: parseFloat(received || '0').toFixed(2),
           method: method as string,
@@ -208,7 +213,7 @@ export default function AmountReceived() {
                           const addon = item.addonDetails?.find((a) => a.addonId === Number(addonId));
                           return addon ? (
                             <Text key={addonId} style={styles.addonText}>
-                              {addon.addonName} x{qty} (₱{addon.price * qty})
+                              {addon.addonName} x{qty} (₱{(addon.price * qty).toFixed(2)})
                             </Text>
                           ) : null;
                         })}
@@ -236,23 +241,23 @@ export default function AmountReceived() {
           <View style={styles.totalContainer}>
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Subtotal:</Text>
-              <Text style={styles.totalValue}>₱{subtotal.toFixed(2)}</Text>
+              <Text style={styles.totalValue}>₱{(subtotal || 0).toFixed(2)}</Text>
             </View>
             {parsedDiscount > 0 && (
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Discount:</Text>
-                <Text style={styles.totalValue}>-₱{parsedDiscount.toFixed(2)}</Text>
+                <Text style={styles.totalValue}>-₱{(parsedDiscount || 0).toFixed(2)}</Text>
               </View>
             )}
             {parsedDeliveryFee > 0 && (
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Delivery Fee:</Text>
-                <Text style={styles.totalValue}>₱{parsedDeliveryFee.toFixed(2)}</Text>
+                <Text style={styles.totalValue}>₱{(parsedDeliveryFee || 0).toFixed(2)}</Text>
               </View>
             )}
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>AMOUNT PAYABLE:</Text>
-              <Text style={styles.amount}>₱{payable.toFixed(2)}</Text>
+              <Text style={styles.amount}>₱{(payable || 0).toFixed(2)}</Text>
             </View>
           </View>
 
@@ -279,6 +284,7 @@ export default function AmountReceived() {
             <TextInput
               style={styles.input}
               placeholder="Enter amount received"
+              placeholderTextColor="#4B5563"
               keyboardType="numeric"
               value={received}
               onChangeText={handleInputChange}
@@ -302,7 +308,7 @@ export default function AmountReceived() {
           </View>
 
           <View style={styles.centered}>
-            <Text style={styles.changeLabel}>Change: ₱{change.toFixed(2)}</Text>
+            <Text style={styles.changeLabel}>Change: ₱{(change || 0).toFixed(2)}</Text>
           </View>
 
           <TouchableOpacity style={styles.exactButton} onPress={handleExactAmount}>
@@ -322,31 +328,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFBEB',
-    padding: 20,
+    padding: wp('5%'),
   },
   scrollView: {
     flex: 1,
   },
   header: {
-    fontSize: 22,
+    fontSize: wp('5.5%'),
     fontWeight: '700',
     color: '#D97706',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: hp('2%'),
   },
   cartContainer: {
-    marginBottom: 20,
+    marginBottom: hp('2.5%'),
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: wp('4.5%'),
     fontWeight: '600',
     color: '#B45309',
-    marginBottom: 12,
+    marginBottom: hp('1.5%'),
   },
   cartItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 10,
+    paddingVertical: hp('1.2%'),
     borderBottomWidth: 1,
     borderBottomColor: '#FDE68A',
   },
@@ -354,142 +360,143 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemName: {
-    fontSize: 14,
+    fontSize: wp('3.8%'),
     fontWeight: '600',
     color: '#7C2D12',
   },
   addonContainer: {
-    marginTop: 4,
+    marginTop: hp('0.5%'),
   },
   addonText: {
-    fontSize: 12,
+    fontSize: wp('3.2%'),
     color: '#78350F',
-    marginLeft: 8,
+    marginLeft: wp('2%'),
   },
   itemSubtotal: {
-    fontSize: 12,
+    fontSize: wp('3.2%'),
     fontWeight: '600',
     color: '#B91C1C',
-    marginTop: 4,
+    marginTop: hp('0.5%'),
   },
   itemQuantity: {
-    fontSize: 14,
+    fontSize: wp('4%'),
     fontWeight: '600',
     color: '#7C2D12',
   },
   emptyCartText: {
-    fontSize: 14,
+    fontSize: wp('4%'),
     color: '#9CA3AF',
     textAlign: 'center',
-    marginVertical: 12,
+    marginVertical: hp('1.5%'),
   },
   totalContainer: {
-    marginBottom: 20,
+    marginBottom: hp('2.5%'),
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginBottom: 4,
+    marginBottom: hp('0.8%'),
   },
   totalLabel: {
-    fontSize: 16,
+    fontSize: wp('4.5%'),
     fontWeight: '700',
     color: '#7C2D12',
-    marginRight: 10,
+    marginRight: wp('2%'),
   },
   totalValue: {
-    fontSize: 16,
+    fontSize: wp('4.5%'),
     fontWeight: '700',
     color: '#7C2D12',
   },
   amount: {
-    fontSize: 24,
+    fontSize: wp('6.5%'),
     fontWeight: '800',
     color: '#DC2626',
   },
   customerContainer: {
-    marginBottom: 20,
+    marginBottom: hp('2.5%'),
   },
   customerText: {
-    fontSize: 14,
+    fontSize: wp('3.8%'),
     color: '#78350F',
-    marginBottom: 4,
+    marginBottom: hp('0.5%'),
   },
   centered: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: hp('2%'),
   },
   subLabel: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '600',
     color: '#1F2937',
-    marginBottom: 6,
+    marginBottom: hp('1%'),
   },
   input: {
     backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 18,
+    borderRadius: wp('2%'),
+    padding: hp('1.5%'),
+    fontSize: wp('4.5%'),
     textAlign: 'center',
-    width: '80%',
+    width: wp('80%'),
     borderWidth: 1,
     borderColor: '#FDE68A',
     elevation: 2,
   },
   suggestion: {
-    fontSize: 14,
+    fontSize: wp('3.8%'),
     color: '#6B7280',
-    marginBottom: 6,
+    marginBottom: hp('1%'),
   },
   billsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 8,
-    marginBottom: 16,
+    gap: wp('2%'),
+    marginBottom: hp('2%'),
   },
   billButton: {
     backgroundColor: '#FACC15',
-    paddingVertical: 20,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    minWidth: 100,
+    paddingVertical: hp('2%'),
+    paddingHorizontal: wp('5%'),
+    borderRadius: wp('2%'),
+    minWidth: wp('22%'),
     alignItems: 'center',
+    margin: wp('1%'),
   },
   billText: {
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: wp('3.8%'),
     color: '#78350F',
   },
   changeLabel: {
-    fontSize: 16,
+    fontSize: wp('4.2%'),
     fontWeight: '600',
     color: '#10B981',
   },
   exactButton: {
     backgroundColor: '#10B981',
-    paddingVertical: 16,
-    borderRadius: 8,
+    paddingVertical: hp('2%'),
+    borderRadius: wp('2%'),
     alignItems: 'center',
-    marginVertical: 12,
+    marginVertical: hp('1.5%'),
     width: '100%',
   },
   exactButtonText: {
     color: 'white',
-    fontSize: 15,
+    fontSize: wp('4%'),
     fontWeight: '700',
   },
   proceedButton: {
     backgroundColor: '#4F46E5',
-    paddingVertical: 16,
-    borderRadius: 8,
+    paddingVertical: hp('2%'),
+    borderRadius: wp('2%'),
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: hp('1%'),
     width: '100%',
   },
   proceedText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: wp('4.2%'),
     fontWeight: '700',
   },
 });

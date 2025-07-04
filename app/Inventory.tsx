@@ -2,6 +2,10 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  heightPercentageToDP as hp,
+  widthPercentageToDP as wp,
+} from 'react-native-responsive-screen';
 
 type AppRoutes =
   | '/Products'
@@ -51,22 +55,22 @@ export default function Inventory() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFDEB', // soft yellow background
-    paddingHorizontal: 16,
-    paddingTop: 50,
+    backgroundColor: '#FFFDEB',
+    paddingHorizontal: wp('4%'),
+    paddingTop: hp('6%'),
   },
   title: {
-    fontSize: 28,
+    fontSize: wp('7.5%'),
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 6,
-    color: '#F59E0B', // egg yolk orange
+    marginBottom: hp('1%'),
+    color: '#F59E0B',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     textAlign: 'center',
     color: '#374151',
-    marginBottom: 24,
+    marginBottom: hp('3%'),
   },
   grid: {
     flexDirection: 'row',
@@ -74,11 +78,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   gridItem: {
-    backgroundColor: '#FBBF24', // golden egg tone
+    backgroundColor: '#FBBF24',
     width: '48%',
     aspectRatio: 1,
-    borderRadius: 18,
-    marginBottom: 16,
+    borderRadius: wp('4.5%'),
+    marginBottom: hp('2%'),
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -89,8 +93,8 @@ const styles = StyleSheet.create({
   },
   gridText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '600',
-    marginTop: 8,
+    marginTop: hp('1%'),
   },
 });
