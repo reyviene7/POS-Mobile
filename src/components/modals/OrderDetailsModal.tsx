@@ -8,6 +8,7 @@ import {
   View
 } from "react-native";
 import Toast from "react-native-toast-message";
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 
 interface Item {
   productName: string;
@@ -23,7 +24,10 @@ interface Props {
   totalPrice: number;
   timestamp: string;
   paymentMethod: string | null;
-  onDelete?: (orderId: string) => void; // Make onDelete optional
+  discount: number;
+  deliveryFee: number;
+  grandTotal: number;
+  onDelete?: (orderId: string) => void;
 }
 
 const OrderDetailsModal: React.FC<Props> = ({
@@ -34,6 +38,9 @@ const OrderDetailsModal: React.FC<Props> = ({
   totalPrice,
   timestamp,
   paymentMethod,
+  discount,
+  deliveryFee,
+  grandTotal,
   onDelete,
 }) => {
   if (!visible || !orderId) return null;
@@ -55,14 +62,32 @@ const OrderDetailsModal: React.FC<Props> = ({
               <View key={`${orderId}-${item.productName}`} style={styles.itemRow}>
                 <Text style={styles.itemName}>{item.productName}</Text>
                 <Text style={styles.itemInfo}>
-                  x{item.quantity} – ₱{item.price.toFixed(2)}
+                  x{item.quantity} – ₱{(item.price || 0).toFixed(2)}
                 </Text>
               </View>
             ))}
           </ScrollView>
           <View style={styles.totalContainer}>
-            <Text style={styles.totalLabel}>Total:</Text>
-            <Text style={styles.totalAmount}>₱{totalPrice.toFixed(2)}</Text>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Subtotal:</Text>
+              <Text style={styles.totalAmount}>₱{(totalPrice || 0).toFixed(2)}</Text>
+            </View>
+            {discount > 0 && (
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Discount:</Text>
+                <Text style={styles.totalAmount}>-₱{(discount || 0).toFixed(2)}</Text>
+              </View>
+            )}
+            {deliveryFee > 0 && (
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Delivery Fee:</Text>
+                <Text style={styles.totalAmount}>₱{(deliveryFee || 0).toFixed(2)}</Text>
+              </View>
+            )}
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Grand Total:</Text>
+              <Text style={styles.totalAmount}>₱{(grandTotal || 0).toFixed(2)}</Text>
+            </View>
           </View>
           <View style={styles.buttonContainer}>
             {onDelete && (
@@ -104,87 +129,90 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
-    padding: 20,
+    padding: wp('5%'),
   },
   modal: {
     backgroundColor: "#FFFBEB",
-    borderRadius: 16,
-    padding: 20,
-    maxHeight: "80%",
+    borderRadius: wp('4%'),
+    padding: wp('5%'),
+    maxHeight: hp('80%'),
     elevation: 6,
   },
   header: {
-    fontSize: 22,
+    fontSize: wp('6%'),
     fontWeight: "bold",
     color: "#B45309",
     textAlign: "center",
-    marginBottom: 6,
+    marginBottom: hp('1.5%'),
   },
   subHeader: {
-    fontSize: 16,
+    fontSize: wp('4.5%'),
     fontWeight: "600",
     color: "#92400E",
     textAlign: "center",
-    marginBottom: 4,
+    marginBottom: hp('1%'),
   },
   timestamp: {
-    fontSize: 14,
+    fontSize: wp('3.8%'),
     color: "#6B7280",
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: hp('1%'),
   },
   paymentMethod: {
-    fontSize: 14,
+    fontSize: wp('3.8%'),
     color: "#374151",
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: hp('1.5%'),
   },
   itemsContainer: {
-    marginBottom: 12,
-    maxHeight: 220,
+    marginBottom: hp('2%'),
+    maxHeight: hp('30%'),
   },
   itemRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 6,
+    marginBottom: hp('1%'),
   },
   itemName: {
-    fontSize: 14,
+    fontSize: wp('3.8%'),
     color: "#374151",
     fontWeight: "500",
   },
   itemInfo: {
-    fontSize: 14,
+    fontSize: wp('3.8%'),
     color: "#6B7280",
   },
   totalContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     borderTopWidth: 1,
     borderColor: "#E5E7EB",
-    paddingTop: 12,
-    marginTop: 8,
+    paddingTop: hp('1.5%'),
+    marginTop: hp('1%'),
+  },
+  totalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: hp('0.8%'),
   },
   totalLabel: {
-    fontSize: 16,
+    fontSize: wp('4.2%'),
     fontWeight: "600",
     color: "#1F2937",
   },
   totalAmount: {
-    fontSize: 16,
+    fontSize: wp('4.2%'),
     fontWeight: "700",
     color: "#10B981",
   },
   buttonContainer: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    gap: 8,
-    marginTop: 12,
+    gap: wp('2%'),
+    marginTop: hp('1.5%'),
   },
   button: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('5%'),
+    borderRadius: wp('2%'),
   },
   closeButton: {
     backgroundColor: "#4F46E5",
@@ -195,7 +223,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontWeight: "600",
-    fontSize: 14,
+    fontSize: wp('3.8%'),
     textAlign: "center",
   },
 });

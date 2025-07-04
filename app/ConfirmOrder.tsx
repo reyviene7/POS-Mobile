@@ -3,7 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -12,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import Toast from 'react-native-toast-message';
 
 type Product = {
@@ -117,7 +120,7 @@ export default function ConfirmOrder() {
           }}
           style={styles.headerLeftButton}
         >
-        <Ionicons name="arrow-back-outline" size={22} />
+          <Ionicons name="arrow-back-outline" size={22} />
         </TouchableOpacity>
       ),
     });
@@ -168,6 +171,16 @@ export default function ConfirmOrder() {
   };
 
   const handleConfirm = () => {
+    console.log('ConfirmOrder: Navigating to PaymentOption with:', {
+      cart,
+      customerName,
+      customerNumber,
+      customerAddress,
+      notes,
+      discount,
+      deliveryFee,
+      receiptNo,
+    });
     router.push({
       pathname: '/PaymentOption',
       params: {
@@ -176,8 +189,8 @@ export default function ConfirmOrder() {
         customerNumber,
         customerAddress,
         notes,
-        discount: discount.toString(),
-        deliveryFee: deliveryFee.toString(),
+        discount: discount.toFixed(2), // Ensure string with 2 decimal places
+        deliveryFee: deliveryFee.toFixed(2), // Ensure string with 2 decimal places
         receiptNo,
       },
     });
@@ -213,6 +226,7 @@ export default function ConfirmOrder() {
     setDiscount(value);
     setShowDiscountModal(false);
     setTempDiscount('');
+    console.log('ConfirmOrder: Discount applied:', value);
   };
 
   const handleApplyDeliveryFee = () => {
@@ -232,6 +246,7 @@ export default function ConfirmOrder() {
     setDeliveryFee(value);
     setShowDeliveryFeeModal(false);
     setTempDeliveryFee('');
+    console.log('ConfirmOrder: Delivery fee applied:', value);
   };
 
   return (
@@ -266,7 +281,7 @@ export default function ConfirmOrder() {
                       const addon = item.addonDetails?.find((a) => a.addonId === Number(addonId));
                       return addon ? (
                         <Text key={addonId} style={styles.addonText}>
-                          {addon.addonName} x{qty} (₱{addon.price * qty})
+                          {addon.addonName} x{qty} (₱{(addon.price * qty).toFixed(2)})
                         </Text>
                       ) : null;
                     })}
@@ -344,47 +359,47 @@ export default function ConfirmOrder() {
           onPress={() => setShowCustomerDetails(!showCustomerDetails)}
         >
           <Text style={styles.detailsToggleText}>
-            Customer&apos;s Details and Notes (Optional)
+            Customer's Details and Notes (Optional)
           </Text>
           <Text style={styles.detailsToggleArrow}>
             {showCustomerDetails ? '▲' : '▼'}
           </Text>
         </TouchableOpacity>
 
-      {showCustomerDetails && (
-        <View style={styles.detailsContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Customer's name"
-            placeholderTextColor="#4B5563"
-            value={customerName}
-            onChangeText={setCustomerName}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Customer's number"
-            placeholderTextColor="#4B5563"
-            value={customerNumber}
-            onChangeText={setCustomerNumber}
-            keyboardType="phone-pad"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Customer's address"
-            placeholderTextColor="#4B5563"
-            value={customerAddress}
-            onChangeText={setCustomerAddress}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Notes"
-            placeholderTextColor="#4B5563"
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-          />
-        </View>
-      )}
+        {showCustomerDetails && (
+          <View style={styles.detailsContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Customer's name"
+              placeholderTextColor="#4B5563"
+              value={customerName}
+              onChangeText={setCustomerName}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Customer's number"
+              placeholderTextColor="#4B5563"
+              value={customerNumber}
+              onChangeText={setCustomerNumber}
+              keyboardType="phone-pad"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Customer's address"
+              placeholderTextColor="#4B5563"
+              value={customerAddress}
+              onChangeText={setCustomerAddress}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Notes"
+              placeholderTextColor="#4B5563"
+              value={notes}
+              onChangeText={setNotes}
+              multiline
+            />
+          </View>
+        )}
       
         <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
           <Text style={styles.confirmText}>CONFIRM</Text>
@@ -434,33 +449,38 @@ export default function ConfirmOrder() {
         visible={showDeliveryFeeModal}
         onRequestClose={() => setShowDeliveryFeeModal(false)}
       >
-        <View style={styles.modalBackground}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add Delivery Fee</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Enter delivery fee (₱)"
-              placeholderTextColor="#4B5563"
-              value={tempDeliveryFee}
-              onChangeText={setTempDeliveryFee}
-              keyboardType="numeric"
-            />
-            <View style={styles.modalButtonContainer}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setShowDeliveryFeeModal(false)}
-              >
-                <Text style={styles.modalButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.applyButton]}
-                onPress={handleApplyDeliveryFee}
-              >
-                <Text style={styles.modalButtonText}>Apply</Text>
-              </TouchableOpacity>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalBackground}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Add Delivery Fee</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Enter delivery fee (₱)"
+                placeholderTextColor="#4B5563"
+                value={tempDeliveryFee}
+                onChangeText={setTempDeliveryFee}
+                keyboardType="numeric"
+              />
+              <View style={styles.modalButtonContainer}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setShowDeliveryFeeModal(false)}
+                >
+                  <Text style={styles.modalButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.applyButton]}
+                  onPress={handleApplyDeliveryFee}
+                >
+                  <Text style={styles.modalButtonText}>Apply</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -470,8 +490,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFF7ED',
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: wp('4%'),
+    paddingTop: hp('2%'),
   },
   scrollView: {
     flex: 1,
@@ -479,23 +499,19 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: hp('1.5%'),
     alignItems: 'center',
   },
   headerLeftButton: {
-    padding: 8,
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: '#431407',
+    padding: wp('2%'),
   },
   storeName: {
-    fontSize: 22,
+    fontSize: wp('5.5%'),
     fontWeight: '700',
     color: '#D97706',
   },
   receiptNo: {
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     color: '#A16207',
     fontWeight: '500',
   },
@@ -503,13 +519,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     backgroundColor: '#FEF3C7',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-    marginBottom: 10,
+    paddingVertical: hp('1%'),
+    paddingHorizontal: wp('2.5%'),
+    borderRadius: wp('2.5%'),
+    marginBottom: hp('1.5%'),
   },
   productHeader: {
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     fontWeight: '700',
     color: '#78350F',
     flex: 1,
@@ -519,26 +535,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: hp('1.2%'),
     borderBottomWidth: 1,
     borderBottomColor: '#FDE68A',
   },
   productNameContainer: {
     flex: 1,
-    paddingRight: 8,
+    paddingRight: wp('2%'),
   },
   productName: {
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     color: '#7C2D12',
     fontWeight: '600',
   },
   addonContainer: {
-    marginTop: 4,
+    marginTop: hp('0.5%'),
   },
   addonText: {
-    fontSize: 12,
+    fontSize: wp('3%'),
     color: '#78350F',
-    marginLeft: 8,
+    marginLeft: wp('2%'),
   },
   quantityContainer: {
     flexDirection: 'row',
@@ -547,57 +563,57 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   quantityButton: {
-    padding: 6,
+    padding: wp('1.5%'),
     backgroundColor: '#F59E0B',
-    borderRadius: 8,
+    borderRadius: wp('2%'),
   },
   quantityText: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     color: 'white',
     fontWeight: 'bold',
   },
   quantityValue: {
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     color: '#7C2D12',
-    marginHorizontal: 8,
+    marginHorizontal: wp('2%'),
     fontWeight: '600',
   },
   productPrice: {
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     color: '#78350F',
     flex: 1,
     textAlign: 'center',
   },
   subtotal: {
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     color: '#B91C1C',
     fontWeight: '600',
     flex: 1,
     textAlign: 'center',
   },
   emptyCartText: {
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     color: '#9CA3AF',
     textAlign: 'center',
-    marginVertical: 12,
+    marginVertical: hp('1.5%'),
   },
   totalContainer: {
-    marginTop: 10,
-    marginBottom: 20,
+    marginTop: hp('1.5%'),
+    marginBottom: hp('2.5%'),
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginBottom: 4,
+    marginBottom: hp('0.8%'),
   },
   totalLabel: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '700',
     color: '#7C2D12',
-    marginRight: 10,
+    marginRight: wp('2%'),
   },
   totalValue: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '700',
     color: '#7C2D12',
   },
@@ -605,65 +621,65 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 20,
+    gap: wp('2%'),
+    marginBottom: hp('2.5%'),
   },
   actionButton: {
     backgroundColor: '#FCD34D',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('3%'),
+    borderRadius: wp('2.5%'),
     alignItems: 'center',
     flexGrow: 1,
-    marginHorizontal: 2,
+    marginHorizontal: wp('0.5%'),
     elevation: 2,
   },
   actionButtonText: {
     color: '#78350F',
-    fontSize: 12,
+    fontSize: wp('3%'),
     fontWeight: '600',
   },
   detailsToggle: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     backgroundColor: '#F59E0B',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 12,
+    padding: wp('3%'),
+    borderRadius: wp('3%'),
+    marginBottom: hp('1.5%'),
   },
   detailsToggleText: {
     color: 'white',
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     fontWeight: '700',
   },
   detailsToggleArrow: {
     color: 'white',
-    fontSize: 14,
+    fontSize: wp('3.5%'),
   },
   detailsContainer: {
-    marginBottom: 20,
+    marginBottom: hp('2.5%'),
   },
   input: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    fontSize: 14,
-    marginBottom: 12,
+    borderRadius: wp('3%'),
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('4%'),
+    fontSize: wp('3.5%'),
+    marginBottom: hp('2%'),
     color: '#1F2937',
     borderWidth: 1,
     borderColor: '#FDE68A',
   },
   confirmButton: {
     backgroundColor: '#EF4444',
-    paddingVertical: 14,
-    borderRadius: 14,
+    paddingVertical: hp('2.5%'),
+    borderRadius: wp('4%'),
     alignItems: 'center',
     elevation: 3,
   },
   confirmText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '700',
   },
   modalBackground: {
@@ -674,22 +690,23 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    width: '80%',
+    borderRadius: wp('3%'),
+    padding: wp('5%'),
+    width: wp('85%'),
+    maxHeight: hp('80%'),
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: wp('4.5%'),
     fontWeight: '600',
-    marginBottom: 12,
+    marginBottom: hp('1.5%'),
     color: '#1F2937',
   },
   modalInput: {
     backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    marginBottom: 16,
+    borderRadius: wp('2%'),
+    padding: wp('3%'),
+    fontSize: wp('3.5%'),
+    marginBottom: hp('2%'),
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
@@ -698,11 +715,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   modalButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('5%'),
+    borderRadius: wp('2%'),
     flex: 1,
-    marginHorizontal: 5,
+    marginHorizontal: wp('1%'),
     alignItems: 'center',
   },
   cancelButton: {
@@ -712,7 +729,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F59E0B',
   },
   modalButtonText: {
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     fontWeight: '600',
     color: '#1F2937',
   },
