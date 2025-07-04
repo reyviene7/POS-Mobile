@@ -8,6 +8,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import {
+  heightPercentageToDP as hp,
+  widthPercentageToDP as wp,
+} from 'react-native-responsive-screen';
 import Toast from 'react-native-toast-message';
 
 export default function PaymentComplete() {
@@ -64,7 +68,7 @@ export default function PaymentComplete() {
 
   const handleBackToHome = () => {
     router.replace({
-      pathname: '/',
+      pathname: '/Home',
       params: {},
     });
   };
@@ -140,46 +144,46 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ECFDF5',
-    padding: 24,
+    padding: wp('6%'),
     justifyContent: 'center',
     alignItems: 'center',
   },
   completeText: {
-    fontSize: 32,
+    fontSize: wp('8%'),
     fontWeight: '800',
     color: '#16A34A',
-    marginBottom: 30,
+    marginBottom: hp('4%'),
   },
   infoBox: {
     backgroundColor: '#fff',
     width: '100%',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
+    borderRadius: wp('3%'),
+    padding: wp('5%'),
+    marginBottom: hp('3%'),
     elevation: 3,
   },
   label: {
-    fontSize: 16,
+    fontSize: wp('4.2%'),
     fontWeight: '600',
     color: '#374151',
   },
   amount: {
-    fontSize: 24,
+    fontSize: wp('6.2%'),
     fontWeight: '700',
     color: '#DC2626',
   },
   methodText: {
-    fontSize: 14,
+    fontSize: wp('3.8%'),
     color: '#6B7280',
-    marginBottom: 20,
+    marginBottom: hp('2%'),
   },
   buttonsContainer: {
     width: '100%',
-    gap: 12,
+    gap: hp('1.5%'),
   },
   actionButton: {
-    paddingVertical: 14,
-    borderRadius: 8,
+    paddingVertical: hp('2%'),
+    borderRadius: wp('2%'),
     alignItems: 'center',
   },
   drawer: {
@@ -196,7 +200,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: 'white',
-    fontSize: 15,
+    fontSize: wp('4.2%'),
     fontWeight: '700',
   },
 });

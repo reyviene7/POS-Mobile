@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import Toast from 'react-native-toast-message';
 import api from '../api';
 import PaymentModal from '../src/components/modals/PaymentModal';
@@ -211,45 +212,45 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFDEB',
-    padding: 20,
-    paddingTop: 40,
+    paddingHorizontal: wp('5%'),
+    paddingTop: hp('5%'),
   },
   title: {
-    fontSize: 28,
+    fontSize: wp('7%'),
     fontWeight: 'bold',
     color: '#D97706',
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: wp('4%'),
     color: '#7C3AED',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: hp('2%'),
   },
   addButton: {
     backgroundColor: '#FCD34D',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    borderRadius: wp('3%'),
+    paddingVertical: hp('1.8%'),
+    paddingHorizontal: wp('8%'),
     alignSelf: 'center',
-    marginBottom: 12,
+    marginBottom: hp('2%'),
     borderWidth: 1,
     borderColor: '#F59E0B',
   },
   addButtonText: {
     color: '#92400E',
-    fontSize: 16,
+    fontSize: wp('4.2%'),
     fontWeight: '700',
   },
   card: {
     backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 14,
-    marginBottom: 12,
+    padding: wp('4.5%'),
+    borderRadius: wp('4%'),
+    marginBottom: hp('1.5%'),
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderLeftWidth: 4,
+    borderLeftWidth: wp('1.2%'),
     borderLeftColor: '#F59E0B',
     shadowColor: '#000',
     shadowOpacity: 0.05,
@@ -257,18 +258,19 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   method: {
-    fontSize: 17,
+    fontSize: wp('4.5%'),
     fontWeight: '600',
     color: '#374151',
   },
   delete: {
-    fontSize: 18,
+    fontSize: wp('5.2%'),
     color: '#EF4444',
   },
   emptyText: {
     textAlign: 'center',
     color: '#9CA3AF',
-    marginTop: 32,
+    marginTop: hp('5%'),
+    fontSize: wp('4%'),
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -279,7 +281,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#EF4444',
     textAlign: 'center',
-    marginBottom: 16,
-    fontSize: 16,
+    marginBottom: hp('2%'),
+    fontSize: wp('4%'),
   },
 });

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import Toast from 'react-native-toast-message';
 import api from '../api';
 import OrderDetailsModal from '../src/components/modals/OrderDetailsModal';
@@ -12,6 +13,8 @@ interface TodaySalesDTO {
   quantity: number;
   price: number;
   paymentMethod: string | null;
+  discount: number;
+  deliveryFee: number;
 }
 
 interface ShiftOrder {
@@ -19,6 +22,9 @@ interface ShiftOrder {
   timestamp: string;
   totalPrice: number;
   paymentMethod: string | null;
+  discount: number;
+  deliveryFee: number;
+  grandTotal: number; // Added
   items: { productName: string; quantity: number; price: number }[];
 }
 
@@ -30,7 +36,7 @@ export default function ShiftSummary() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const totalSales = orders.reduce((sum, order) => sum + order.totalPrice, 0);
+  const totalSales = orders.reduce((sum, order) => sum + (order.grandTotal || 0), 0);
 
   const fetchTodaySales = async () => {
     setLoading(true);
@@ -46,6 +52,8 @@ export default function ShiftSummary() {
         quantity: item.quantity,
         price: item.price,
         paymentMethod: item.paymentMethod,
+        discount: item.discount != null ? Number(item.discount) : 0,
+        deliveryFee: item.deliveryFee != null ? Number(item.deliveryFee) : 0,
       }));
 
       const groupedOrders = Object.values(
@@ -56,6 +64,9 @@ export default function ShiftSummary() {
               timestamp: item.timestamp,
               totalPrice: 0,
               paymentMethod: item.paymentMethod,
+              discount: item.discount,
+              deliveryFee: item.deliveryFee,
+              grandTotal: 0, // Initialize
               items: [],
             };
           }
@@ -65,6 +76,7 @@ export default function ShiftSummary() {
             price: item.price,
           });
           acc[item.orderId].totalPrice += item.quantity * item.price;
+          acc[item.orderId].grandTotal = acc[item.orderId].totalPrice - item.discount + item.deliveryFee; // Calculate
           return acc;
         }, {})
       );
@@ -121,10 +133,13 @@ export default function ShiftSummary() {
         </View>
         {item.items.map((subItem, index) => (
           <Text key={`${item.orderId}-${subItem.productName}`} style={styles.item}>
-            {subItem.productName} x{subItem.quantity} – ₱{subItem.price.toFixed(2)}
+            {subItem.productName} x{subItem.quantity} – ₱{(subItem.price || 0).toFixed(2)}
           </Text>
         ))}
-        <Text style={styles.total}>Total: ₱{item.totalPrice.toFixed(2)}</Text>
+        <Text style={styles.total}>Subtotal: ₱{(item.totalPrice || 0).toFixed(2)}</Text>
+        <Text style={styles.paymentMethod}>Discount: ₱{(item.discount || 0).toFixed(2)}</Text>
+        <Text style={styles.paymentMethod}>Delivery Fee: ₱{(item.deliveryFee || 0).toFixed(2)}</Text>
+        <Text style={styles.total}>Grand Total: ₱{(item.grandTotal || 0).toFixed(2)}</Text>
         <Text style={styles.paymentMethod}>Payment: {item.paymentMethod || 'None'}</Text>
       </View>
     </Pressable>
@@ -142,7 +157,7 @@ export default function ShiftSummary() {
       <Text style={styles.subtitle}>Daily order earnings at a glance</Text>
       <View style={styles.summaryBox}>
         <Text style={styles.summaryLabel}>Total Sales:</Text>
-        <Text style={styles.summaryAmount}>₱{totalSales.toFixed(2)}</Text>
+        <Text style={styles.summaryAmount}>₱{(totalSales || 0).toFixed(2)}</Text>
       </View>
       <FlatList
         data={orders}
@@ -161,6 +176,9 @@ export default function ShiftSummary() {
         totalPrice={selectedOrderId ? orders.find(order => order.orderId === selectedOrderId)?.totalPrice || 0 : 0}
         timestamp={selectedOrderId ? orders.find(order => order.orderId === selectedOrderId)?.timestamp || '' : ''}
         paymentMethod={selectedOrderId ? orders.find(order => order.orderId === selectedOrderId)?.paymentMethod || null : null}
+        discount={selectedOrderId ? orders.find(order => order.orderId === selectedOrderId)?.discount || 0 : 0}
+        deliveryFee={selectedOrderId ? orders.find(order => order.orderId === selectedOrderId)?.deliveryFee || 0 : 0}
+        grandTotal={selectedOrderId ? orders.find(order => order.orderId === selectedOrderId)?.grandTotal || 0 : 0} // Added
       />
     </View>
   );
@@ -170,46 +188,46 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFBEB',
-    padding: 20,
+    paddingHorizontal: wp('5%'),
+    paddingTop: hp('4%'),
   },
   title: {
-    fontSize: 26,
+    fontSize: wp('6.5%'),
     fontWeight: '700',
     textAlign: 'center',
     color: '#B45309',
-    marginBottom: 6,
+    marginBottom: hp('1%'),
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: wp('3.8%'),
     textAlign: 'center',
     color: '#6B7280',
-    marginBottom: 16,
+    marginBottom: hp('2%'),
   },
   summaryBox: {
     backgroundColor: '#FEF3C7',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: wp('3%'),
+    padding: wp('5%'),
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: hp('2.5%'),
     elevation: 3,
   },
   summaryLabel: {
-    fontSize: 16,
+    fontSize: wp('4.2%'),
     fontWeight: '600',
     color: '#92400E',
   },
   summaryAmount: {
-    fontSize: 16,
+    fontSize: wp('4.2%'),
     fontWeight: 'bold',
     color: '#16A34A',
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 14,
-    marginHorizontal: 12,
-    marginBottom: 12,
+    borderRadius: wp('3%'),
+    padding: wp('4%'),
+    marginBottom: hp('1.8%'),
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 2 },
@@ -222,48 +240,49 @@ const styles = StyleSheet.create({
   cardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: hp('1%'),
   },
   orderId: {
-    fontSize: 16,
+    fontSize: wp('4.2%'),
     fontWeight: '600',
     color: '#1F2937',
   },
   timestamp: {
-    fontSize: 14,
+    fontSize: wp('3.6%'),
     color: '#6B7280',
   },
   item: {
-    fontSize: 14,
+    fontSize: wp('3.8%'),
     color: '#374151',
-    marginBottom: 4,
+    marginBottom: hp('0.5%'),
   },
   total: {
-    fontSize: 16,
+    fontSize: wp('4.4%'),
     fontWeight: 'bold',
     color: '#16A34A',
-    marginVertical: 8,
+    marginVertical: hp('1%'),
     textAlign: 'right',
   },
   paymentMethod: {
-    fontSize: 14,
+    fontSize: wp('3.6%'),
     color: '#374151',
     textAlign: 'right',
   },
   emptyText: {
     textAlign: 'center',
     color: '#9CA3AF',
-    marginTop: 30,
+    marginTop: hp('5%'),
     fontStyle: 'italic',
+    fontSize: wp('3.8%'),
   },
   listContent: {
-    paddingBottom: 50,
+    paddingBottom: hp('10%'),
   },
   errorText: {
     color: '#EF4444',
     textAlign: 'center',
-    marginBottom: 16,
-    fontSize: 16,
+    marginBottom: hp('2%'),
+    fontSize: wp('4%'),
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,

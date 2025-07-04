@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import Toast from 'react-native-toast-message';
 import api from '../api';
 import CashModal from '../src/components/modals/CashModal';
@@ -213,30 +214,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFDEB',
-    padding: 20,
-    paddingTop: 48,
+    paddingHorizontal: wp('5%'),
+    paddingTop: hp('6%'),
   },
   title: {
-    fontSize: 26,
+    fontSize: wp('6.5%'),
     fontWeight: 'bold',
     color: '#10B981',
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: hp('0.8%'),
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: wp('4.2%'),
     textAlign: 'center',
     color: '#6B7280',
-    marginBottom: 16,
+    marginBottom: hp('2%'),
   },
   card: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 14,
-    marginHorizontal: 12,
-    marginBottom: 12,
+    borderRadius: wp('3%'),
+    padding: wp('4%'),
+    marginHorizontal: wp('2.5%'),
+    marginBottom: hp('1.8%'),
     elevation: 1,
     shadowColor: '#000',
     shadowOpacity: 0.1,
@@ -244,17 +245,17 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
   },
   orderId: {
-    fontSize: 16,
+    fontSize: wp('4.2%'),
     fontWeight: '600',
     color: '#1F2937',
   },
   timestamp: {
-    fontSize: 14,
+    fontSize: wp('3.6%'),
     color: '#6B7280',
-    marginTop: 4,
+    marginTop: hp('0.5%'),
   },
   amount: {
-    fontSize: 16,
+    fontSize: wp('4.5%'),
     fontWeight: 'bold',
     color: '#22C55E',
     alignSelf: 'center',
@@ -266,7 +267,8 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: 'center',
     color: '#9CA3AF',
-    marginTop: 40,
+    marginTop: hp('5%'),
+    fontSize: wp('4%'),
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -277,7 +279,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#EF4444',
     textAlign: 'center',
-    marginBottom: 16,
-    fontSize: 16,
+    marginBottom: hp('2%'),
+    fontSize: wp('4.2%'),
   },
 });

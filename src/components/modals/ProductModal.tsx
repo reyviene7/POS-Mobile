@@ -337,6 +337,7 @@ export default function ProductModal({ visible, onClose, product, onSave }: Prod
             <TextInput
               style={[styles.input, formErrors.includes('Product name is required') && styles.inputError]}
               placeholder="Product Name"
+              placeholderTextColor="#4B5563"
               value={name}
               onChangeText={setName}
             />
@@ -345,6 +346,7 @@ export default function ProductModal({ visible, onClose, product, onSave }: Prod
               <TextInput
                 style={[styles.input, formErrors.includes('Price is required and must be greater than 0 for non-variant products') && styles.inputError]}
                 placeholder="Price (₱)"
+                placeholderTextColor="#4B5563"
                 keyboardType="numeric"
                 value={price}
                 onChangeText={setPrice}
@@ -402,12 +404,14 @@ export default function ProductModal({ visible, onClose, product, onSave }: Prod
                     <TextInput
                       style={[styles.input, formErrors.includes(`Size is required for variant ${i + 1}`) && styles.inputError]}
                       placeholder="Size (e.g., 16oz)"
+                      placeholderTextColor="#4B5563"
                       value={v.size}
                       onChangeText={(val) => updateVariant(i, 'size', val)}
                     />
                     <TextInput
                       style={[styles.input, formErrors.includes(`Price is required and must be greater than 0 for variant ${i + 1}`) && styles.inputError]}
                       placeholder="Price (₱)"
+                      placeholderTextColor="#4B5563"
                       keyboardType="numeric"
                       value={v.price}
                       onChangeText={(val) => updateVariant(i, 'price', val)}
@@ -415,6 +419,7 @@ export default function ProductModal({ visible, onClose, product, onSave }: Prod
                     <TextInput
                       style={[styles.input, formErrors.includes(`Flavor is required for variant ${i + 1}`) && styles.inputError]}
                       placeholder="Flavor"
+                      placeholderTextColor="#4B5563"
                       value={v.flavor}
                       onChangeText={(val) => updateVariant(i, 'flavor', val)}
                     />

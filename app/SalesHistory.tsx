@@ -13,6 +13,7 @@ import {
 import Toast from "react-native-toast-message";
 import api from "../api";
 import OrderDetailsModal from "../src/components/modals/OrderDetailsModal";
+import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
 
 interface SalesHistoryDetailed {
   orderId: string;
@@ -24,6 +25,9 @@ interface SalesHistoryDetailed {
   saleTime: string;
   timestamp: string;
   paymentMethod: string | null;
+  discount: number;
+  deliveryFee: number;
+  grandTotal: number;
 }
 
 interface Sale {
@@ -31,6 +35,9 @@ interface Sale {
   timestamp: string;
   totalPrice: number;
   paymentMethod: string | null;
+  discount: number;
+  deliveryFee: number;
+  grandTotal: number;
   items: { productName: string; quantity: number; price: number }[];
 }
 
@@ -52,17 +59,24 @@ export default function SalesHistory() {
     setError(null);
     try {
       const response = await api.get("/sales-history/detailed");
-      const data: SalesHistoryDetailed[] = response.data.map((item: any) => ({
-        orderId: item.order_id,
-        productName: item.product_name,
-        quantity: item.quantity,
-        price: item.price,
-        totalPrice: item.total_price,
-        saleDate: item.sale_date,
-        saleTime: item.sale_time,
-        timestamp: item.timestamp,
-        paymentMethod: item.payment_method,
-      }));
+      console.log('Raw backend response:', response.data); // Debug API response
+      const data: SalesHistoryDetailed[] = response.data.map((item: any) => {
+        console.log('Mapping item:', item); // Debug each item
+        return {
+          orderId: item.order_id,
+          productName: item.product_name,
+          quantity: item.quantity,
+          price: item.price,
+          totalPrice: item.total_price,
+          saleDate: item.sale_date,
+          saleTime: item.sale_time,
+          timestamp: item.timestamp,
+          paymentMethod: item.payment_method,
+          discount: item.discount != null ? Number(item.discount) : 0, // Ensure number
+          deliveryFee: item.delivery_fee != null ? Number(item.delivery_fee) : 0, // Ensure number
+          grandTotal: item.grand_total != null ? Number(item.grand_total) : 0, // Ensure number
+        };
+      });
 
       const groupedSales = Object.values(
         data.reduce((acc: { [key: string]: Sale }, item) => {
@@ -70,8 +84,11 @@ export default function SalesHistory() {
             acc[item.orderId] = {
               orderId: item.orderId,
               timestamp: item.timestamp,
-              totalPrice: 0, 
+              totalPrice: 0,
               paymentMethod: item.paymentMethod,
+              discount: item.discount,
+              deliveryFee: item.deliveryFee,
+              grandTotal: item.grandTotal,
               items: [],
             };
           }
@@ -80,17 +97,19 @@ export default function SalesHistory() {
             quantity: item.quantity,
             price: item.price,
           });
-          acc[item.orderId].totalPrice += item.quantity * item.price; // Sum quantity * price
+          acc[item.orderId].totalPrice += item.quantity * item.price;
           return acc;
         }, {})
       );
 
+      console.log('Grouped sales:', groupedSales); // Debug grouped data
       setSales(groupedSales);
       setFilteredSales(groupedSales);
 
-      const total = groupedSales.reduce((sum, sale) => sum + sale.totalPrice, 0);
+      const total = groupedSales.reduce((sum, sale) => sum + (sale.grandTotal || 0), 0);
       setTotalSales(total);
     } catch (err: any) {
+      console.error('Error fetching sales:', err.message, err.response?.data); // Debug error
       Toast.show({
         type: "error",
         text1: "Error",
@@ -99,6 +118,7 @@ export default function SalesHistory() {
         visibilityTime: 2500,
         topOffset: 40,
       });
+      setError('Failed to load sales history.');
     } finally {
       setLoading(false);
     }
@@ -132,11 +152,11 @@ export default function SalesHistory() {
         );
       });
       setFilteredSales(filtered);
-      const total = filtered.reduce((sum, sale) => sum + sale.totalPrice, 0);
+      const total = filtered.reduce((sum, sale) => sum + (sale.grandTotal || 0), 0);
       setTotalSales(total);
     } else {
       setFilteredSales(sales);
-      const total = sales.reduce((sum, sale) => sum + sale.totalPrice, 0);
+      const total = sales.reduce((sum, sale) => sum + (sale.grandTotal || 0), 0);
       setTotalSales(total);
     }
   }, [fromDate, toDate, sales]);
@@ -156,6 +176,7 @@ export default function SalesHistory() {
       fetchSales();
       setModalVisible(false);
     } catch (err: any) {
+      console.error('Error deleting order:', err.message, err.response?.data); // Debug error
       Toast.show({
         type: "error",
         text1: "Error",
@@ -190,10 +211,13 @@ export default function SalesHistory() {
         <Text style={styles.orderId}>Order ID: #{item.orderId}</Text>
         {item.items.map((subItem, index) => (
           <Text key={`${item.orderId}-${subItem.productName}`} style={styles.item}>
-            {subItem.productName} x{subItem.quantity} – ₱{subItem.price.toFixed(2)}
+            {subItem.productName} x{subItem.quantity} – ₱{(subItem.price || 0).toFixed(2)}
           </Text>
         ))}
-        <Text style={styles.totalPrice}>Total: ₱{item.totalPrice.toFixed(2)}</Text>
+        <Text style={styles.totalPrice}>Subtotal: ₱{(item.totalPrice || 0).toFixed(2)}</Text>
+        <Text style={styles.paymentMethod}>Discount: ₱{(item.discount || 0).toFixed(2)}</Text>
+        <Text style={styles.paymentMethod}>Delivery Fee: ₱{(item.deliveryFee || 0).toFixed(2)}</Text>
+        <Text style={styles.totalPrice}>Grand Total: ₱{(item.grandTotal || 0).toFixed(2)}</Text>
         <Text style={styles.timestamp}>
           Timestamp: {new Date(item.timestamp).toLocaleString()}
         </Text>
@@ -236,7 +260,7 @@ export default function SalesHistory() {
       )}
       <View style={styles.summaryBox}>
         <Text style={styles.summaryText}>Total Sales:</Text>
-        <Text style={styles.summaryAmount}>₱{totalSales.toFixed(2)}</Text>
+        <Text style={styles.summaryAmount}>₱{(totalSales || 0).toFixed(2)}</Text>
       </View>
       <FlatList
         data={filteredSales}
@@ -254,6 +278,9 @@ export default function SalesHistory() {
         totalPrice={selectedOrderId ? sales.find(sale => sale.orderId === selectedOrderId)?.totalPrice || 0 : 0}
         timestamp={selectedOrderId ? sales.find(sale => sale.orderId === selectedOrderId)?.timestamp || "" : ""}
         paymentMethod={selectedOrderId ? sales.find(sale => sale.orderId === selectedOrderId)?.paymentMethod || null : null}
+        discount={selectedOrderId ? sales.find(sale => sale.orderId === selectedOrderId)?.discount || 0 : 0}
+        deliveryFee={selectedOrderId ? sales.find(sale => sale.orderId === selectedOrderId)?.deliveryFee || 0 : 0}
+        grandTotal={selectedOrderId ? sales.find(sale => sale.orderId === selectedOrderId)?.grandTotal || 0 : 0}
         onDelete={handleDelete}
       />
     </View>
@@ -264,46 +291,47 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FFFBEB",
-    padding: 16,
+    paddingHorizontal: wp('5%'),
+    paddingTop: hp('3%'),
   },
   title: {
-    fontSize: 26,
+    fontSize: wp('6.5%'),
     fontWeight: "bold",
     color: "#B45309",
     textAlign: "center",
-    marginBottom: 16,
+    marginBottom: hp('1.5%'),
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: wp('3.8%'),
     textAlign: "center",
     color: "#6B7280",
-    marginBottom: 16,
+    marginBottom: hp('2%'),
   },
   summaryBox: {
     flexDirection: "row",
     justifyContent: "space-between",
     backgroundColor: "#FEF3C7",
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 20,
+    padding: wp('4%'),
+    borderRadius: wp('3%'),
+    marginBottom: hp('2.5%'),
     elevation: 2,
   },
   summaryText: {
-    fontSize: 16,
+    fontSize: wp('4.2%'),
     fontWeight: "500",
     color: "#92400E",
   },
   summaryAmount: {
-    fontSize: 16,
+    fontSize: wp('4.2%'),
     fontWeight: "bold",
     color: "#10B981",
   },
   card: {
     backgroundColor: "#FFFFFF",
-    padding: 14,
-    borderRadius: 12,
-    marginHorizontal: 12,
-    marginBottom: 12,
+    padding: wp('4%'),
+    borderRadius: wp('3%'),
+    marginHorizontal: wp('2.5%'),
+    marginBottom: hp('1.8%'),
     elevation: 3,
     shadowColor: "#000",
     shadowOpacity: 0.08,
@@ -316,47 +344,47 @@ const styles = StyleSheet.create({
   dateRange: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 16,
-    gap: 10,
+    marginBottom: hp('2%'),
+    gap: wp('2%'),
   },
   orderId: {
-    fontSize: 16,
+    fontSize: wp('4.4%'),
     fontWeight: "600",
     color: "#1F2937",
-    marginBottom: 8,
+    marginBottom: hp('1%'),
   },
   item: {
-    fontSize: 14,
+    fontSize: wp('3.8%'),
     color: "#374151",
-    marginBottom: 4,
+    marginBottom: hp('0.5%'),
   },
   totalPrice: {
-    fontSize: 16,
+    fontSize: wp('4.4%'),
     fontWeight: "700",
     color: "#16A34A",
-    marginVertical: 8,
+    marginVertical: hp('1%'),
   },
   timestamp: {
-    fontSize: 14,
+    fontSize: wp('3.6%'),
     color: "#6B7280",
-    marginBottom: 4,
+    marginBottom: hp('0.5%'),
   },
   paymentMethod: {
-    fontSize: 14,
+    fontSize: wp('3.6%'),
     color: "#374151",
-    marginBottom: 4,
+    marginBottom: hp('0.5%'),
   },
   emptyText: {
-    marginTop: 40,
+    marginTop: hp('5%'),
     textAlign: "center",
     color: "#9CA3AF",
-    fontSize: 16,
+    fontSize: wp('4%'),
   },
   errorText: {
     color: "#EF4444",
     textAlign: "center",
-    marginBottom: 16,
-    fontSize: 16,
+    marginBottom: hp('2%'),
+    fontSize: wp('4.2%'),
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
