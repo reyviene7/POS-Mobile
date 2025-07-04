@@ -9,10 +9,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import {
+  heightPercentageToDP as hp,
+  widthPercentageToDP as wp,
+} from 'react-native-responsive-screen';
 import Toast from 'react-native-toast-message';
 import api from '../api';
 import CategoryModal from '../src/components/modals/CategoryModal';
 import DeleteModal from '../src/components/modals/DeleteModal';
+
 
 type CategoryItem = {
   id: number;
@@ -250,7 +255,7 @@ export default function CategoryList() {
         data={categories}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: hp('12%') }}
       />
       <TouchableOpacity style={styles.fab} onPress={handleAdd}>
         <Text style={styles.fabText}>+ Add Category</Text>
@@ -277,9 +282,9 @@ export default function CategoryList() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
     backgroundColor: '#FFFBEB',
-    paddingTop: 48,
+    padding: wp('4%'),
+    paddingTop: hp('6%'),
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -294,24 +299,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   title: {
-    fontSize: 28,
+    fontSize: wp('7%'),
     fontWeight: '800',
     color: '#F59E0B',
     textAlign: 'center',
-    marginBottom: 6,
+    marginBottom: hp('1%'),
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     color: '#7C3AED',
     textAlign: 'center',
-    marginBottom: 36,
+    marginBottom: hp('4%'),
   },
   card: {
     backgroundColor: '#FEF9C3',
-    padding: 16,
-    marginBottom: 12,
-    marginHorizontal: 8,
-    borderRadius: 16,
+    padding: wp('4%'),
+    marginBottom: hp('1.5%'),
+    marginHorizontal: wp('2%'),
+    borderRadius: wp('4%'),
     elevation: 3,
     shadowColor: '#000',
     shadowOpacity: 0.08,
@@ -319,34 +324,35 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between', 
   },
   details: {
     flex: 1,
     flexDirection: 'column',
   },
   categoryName: {
-    fontSize: 18,
+    fontSize: wp('4.5%'),
     fontWeight: 'bold',
     color: '#1F2937',
-    marginBottom: 4,
+    marginBottom: hp('0.5%'),
   },
   categoryAddons: {
-    fontSize: 13,
+    fontSize: wp('3.3%'),
     color: '#6B7280',
-    marginTop: 4,
+    marginTop: hp('0.5%'),
   },
   deleteButton: {
-    right: -90,
-    padding: 8,
+    padding: wp('2%'),
+    alignSelf: 'center',
   },
   fab: {
     position: 'absolute',
-    right: 20,
-    bottom: 24,
+    right: wp('5%'),
+    bottom: hp('3%'),
     backgroundColor: '#F59E0B',
-    borderRadius: 30,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    borderRadius: wp('8%'),
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('6%'),
     elevation: 6,
     shadowColor: '#000',
     shadowOpacity: 0.12,
@@ -355,7 +361,7 @@ const styles = StyleSheet.create({
   },
   fabText: {
     color: '#FFF',
-    fontSize: 15,
+    fontSize: wp('3.8%'),
     fontWeight: 'bold',
     textAlign: 'center',
   },

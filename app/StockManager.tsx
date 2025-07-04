@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import Toast from 'react-native-toast-message';
 import api from '../api';
 import StockManagerModal from '../src/components/modals/StockManagerModal';
@@ -256,85 +257,88 @@ export default function StockManager() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#FFFDEB', 
-    padding: 24, 
-    paddingTop: 48 
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFDEB',
+    paddingHorizontal: wp('5%'),
+    paddingTop: hp('6%'),
   },
-  title: { 
-    fontSize: 26, 
-    fontWeight: 'bold', 
-    color: '#B45309', 
-    textAlign: 'center', 
-    marginBottom: 4 
+  title: {
+    fontSize: wp('6.5%'),
+    fontWeight: 'bold',
+    color: '#B45309',
+    textAlign: 'center',
+    marginBottom: hp('0.8%'),
   },
-  subtitle: { 
-    fontSize: 15, 
-    color: '#6B7280', 
-    textAlign: 'center', 
-    marginBottom: 20 
+  subtitle: {
+    fontSize: wp('4%'),
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: hp('2.5%'),
   },
-  searchBar: { 
-    backgroundColor: '#fff', 
-    padding: 12, 
-    borderRadius: 8, 
-    marginBottom: 12, 
-    borderWidth: 1, 
-    borderColor: '#E5E7EB' 
+  searchBar: {
+    backgroundColor: '#fff',
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('4%'),
+    borderRadius: wp('2.5%'),
+    marginBottom: hp('1.5%'),
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    fontSize: wp('4%'),
   },
   addBtn: {
     backgroundColor: '#FCD34D',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 30,
+    borderRadius: wp('3%'),
+    paddingVertical: hp('1.8%'),
+    paddingHorizontal: wp('7%'),
     alignSelf: 'center',
-    marginBottom: 12,
+    marginBottom: hp('2%'),
     borderWidth: 1,
     borderColor: '#F59E0B',
   },
   addBtnText: {
     color: '#92400E',
-    fontSize: 16,
+    fontSize: wp('4.2%'),
     fontWeight: '700',
   },
   card: {
-  backgroundColor: '#fff',
-  padding: 16,
-  marginBottom: 12,
-  borderRadius: 12,
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  borderWidth: 1,
-  borderColor: '#E5E7EB',
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 1 },
-  shadowOpacity: 0.1,
-  shadowRadius: 2,
-  elevation: 2,
+    backgroundColor: '#fff',
+    padding: wp('4%'),
+    marginBottom: hp('1.5%'),
+    borderRadius: wp('3%'),
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   leftSection: {
     flex: 1,
   },
   itemName: {
-    fontSize: 16,
+    fontSize: wp('4.2%'),
     fontWeight: '600',
     color: '#1F2937',
   },
   itemQty: {
-    fontSize: 15,
+    fontSize: wp('4%'),
     color: '#10B981',
-    marginTop: 2,
+    marginTop: hp('0.3%'),
   },
   delete: {
-    fontSize: 20,
-    paddingHorizontal: 8,
+    fontSize: wp('5.5%'),
+    paddingHorizontal: wp('2.5%'),
   },
-  empty: { 
-    textAlign: 'center', 
-    color: '#9CA3AF', 
-    marginTop: 40 
+  empty: {
+    textAlign: 'center',
+    color: '#9CA3AF',
+    marginTop: hp('5%'),
+    fontSize: wp('4%'),
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -345,7 +349,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#EF4444',
     textAlign: 'center',
-    marginBottom: 16,
-    fontSize: 16,
+    marginBottom: hp('2%'),
+    fontSize: wp('4.2%'),
   },
 });

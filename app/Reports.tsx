@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import Toast from 'react-native-toast-message';
 import DateRangeModal from '../src/components/modals/DateRangeModal';
 import { generateCashReportPDF } from '../src/components/reports/GenerateCashReport';
@@ -174,32 +175,32 @@ export default function Reports() {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#FFF7ED',
-    padding: 24,
-    paddingTop: 48,
+    paddingHorizontal: wp('5%'),
+    paddingTop: hp('6%'),
     flexGrow: 1,
     justifyContent: 'flex-start',
   },
   title: {
-    fontSize: 32,
+    fontSize: wp('7%'),
     fontWeight: '700',
     color: '#D97706',
     textAlign: 'center',
-    marginBottom: 8,
-    fontFamily: 'Arial', // Use a bold, modern font if available
+    marginBottom: hp('1%'),
+    fontFamily: 'Arial',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     color: '#7C3AED',
     textAlign: 'center',
-    marginBottom: 28,
+    marginBottom: hp('4%'),
     fontStyle: 'italic',
   },
   reportButton: {
     backgroundColor: '#FCD34D',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 18,
-    marginBottom: 16,
+    paddingVertical: hp('2.2%'),
+    paddingHorizontal: wp('5%'),
+    borderRadius: wp('4.5%'),
+    marginBottom: hp('2%'),
     borderWidth: 1,
     borderColor: '#FBBF24',
     shadowColor: '#000',
@@ -207,10 +208,9 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 3,
     alignItems: 'center',
-    transform: [{ scale: 1 }],
   },
   reportText: {
-    fontSize: 16,
+    fontSize: wp('4.2%'),
     fontWeight: '600',
     color: '#92400E',
   },
