@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import Toast from 'react-native-toast-message';
+import DateRangeModal from '../src/components/modals/DateRangeModal';
 import { generateCashReportPDF } from '../src/components/reports/GenerateCashReport';
 import { generateCreditReportPDF } from '../src/components/reports/GenerateCreditReport';
 import { generateExpensesReportPDF } from '../src/components/reports/GenerateExpensesReport';
@@ -9,7 +11,8 @@ import { generateShiftReportPDF } from '../src/components/reports/GenerateShiftR
 
 export default function Reports() {
   const [loading, setLoading] = useState<string | null>(null);
-const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
+  const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
+  const [showDateRangeModal, setShowDateRangeModal] = useState(false);
 
   useEffect(() => {
     if (!hasShownInitialToast) {
@@ -27,11 +30,13 @@ const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
   }, [hasShownInitialToast]);
   
   const handleGenerate = async (type: string) => {
+    if (type === 'Sales History') {
+    setShowDateRangeModal(true);
+    return;
+    }
     setLoading(type);
     try {
-      if (type === 'Sales History') {
-        await generateSalesHistoryPDF();
-      } else if (type === 'Shift Summary') {
+      if (type === 'Shift Summary') {
         await generateShiftReportPDF();
       } else if (type === 'Cash Transactions') {
         await generateCashReportPDF();
@@ -69,6 +74,26 @@ const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
         autoHide: true,
         topOffset: 40,
       });
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleDateRangeConfirm = async (start: string, end: string) => {
+    setShowDateRangeModal(false);
+    setLoading('Sales History');
+    try {
+      await generateSalesHistoryPDF(start, end);
+      Toast.show({
+        type: 'success',
+        text1: '🥪 Yum!',
+        text2: `Sales History Report generated!`,
+        position: 'top',
+        visibilityTime: 3000,
+        topOffset: 40,
+      });
+    } catch (err) {
+      // already handled inside generateSalesHistoryPDF
     } finally {
       setLoading(null);
     }
@@ -138,6 +163,11 @@ const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
           <Text style={styles.reportText}>💸 Expenses Report</Text>
         )}
       </TouchableOpacity>
+      <DateRangeModal
+        visible={showDateRangeModal}
+        onClose={() => setShowDateRangeModal(false)}
+        onConfirm={handleDateRangeConfirm}
+      />
     </ScrollView>
   );
 }
@@ -145,32 +175,32 @@ const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#FFF7ED',
-    padding: 24,
-    paddingTop: 48,
+    paddingHorizontal: wp('5%'),
+    paddingTop: hp('6%'),
     flexGrow: 1,
     justifyContent: 'flex-start',
   },
   title: {
-    fontSize: 32,
+    fontSize: wp('7%'),
     fontWeight: '700',
     color: '#D97706',
     textAlign: 'center',
-    marginBottom: 8,
-    fontFamily: 'Arial', // Use a bold, modern font if available
+    marginBottom: hp('1%'),
+    fontFamily: 'Arial',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     color: '#7C3AED',
     textAlign: 'center',
-    marginBottom: 28,
+    marginBottom: hp('4%'),
     fontStyle: 'italic',
   },
   reportButton: {
     backgroundColor: '#FCD34D',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 18,
-    marginBottom: 16,
+    paddingVertical: hp('2.2%'),
+    paddingHorizontal: wp('5%'),
+    borderRadius: wp('4.5%'),
+    marginBottom: hp('2%'),
     borderWidth: 1,
     borderColor: '#FBBF24',
     shadowColor: '#000',
@@ -178,10 +208,9 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 3,
     alignItems: 'center',
-    transform: [{ scale: 1 }],
   },
   reportText: {
-    fontSize: 16,
+    fontSize: wp('4.2%'),
     fontWeight: '600',
     color: '#92400E',
   },

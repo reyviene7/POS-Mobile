@@ -14,6 +14,9 @@ interface Sale {
   orderId: string;
   timestamp: string;
   total: number;
+  discount: number;
+  deliveryFee: number;
+  grandTotal: number;
   items: SaleItem[];
 }
 
@@ -27,23 +30,34 @@ interface SalesHistoryDetailedProjection {
   sale_time: string;
   timestamp: string;
   payment_method: string;
+  discount: number;
+  delivery_fee: number;
 }
 
-export const generateSalesHistoryPDF = async () => {
+export const generateSalesHistoryPDF = async (startDate?: string, endDate?: string) => {
   // Fetch sales history from API and process data locally
   const fetchSalesHistory = async (): Promise<Sale[]> => {
     try {
       const response = await api.get('/sales-history/detailed');
-      console.log('Sales history response:', response.data);
       const detailedSales: SalesHistoryDetailedProjection[] = response.data;
+
+      // Filter by date range if provided
+      const filteredSales = detailedSales.filter((item) => {
+        const ts = new Date(item.timestamp);
+        return (!startDate || ts >= new Date(startDate)) &&
+              (!endDate || ts <= new Date(endDate));
+      });
 
       // Group by order_id to create Sale objects
       const salesMap = new Map<string, Sale>();
-      detailedSales.forEach((item) => {
+      filteredSales.forEach((item) => {
         const sale = salesMap.get(item.order_id) || {
           orderId: item.order_id,
           timestamp: item.timestamp,
           total: 0,
+          discount: item.discount != null ? Number(item.discount) : 0,
+          deliveryFee: item.delivery_fee != null ? Number(item.delivery_fee) : 0,
+          grandTotal: 0,
           items: [],
         };
         sale.items.push({
@@ -52,6 +66,7 @@ export const generateSalesHistoryPDF = async () => {
           price: item.price,
         });
         sale.total += item.total_price;
+        sale.grandTotal = sale.total - sale.discount + sale.deliveryFee; // Calculate grandTotal
         salesMap.set(item.order_id, sale);
       });
 
@@ -84,7 +99,7 @@ export const generateSalesHistoryPDF = async () => {
       throw new Error('No sales data available.');
     }
 
-    const totalSales = salesData.reduce((sum, sale) => sum + sale.total, 0);
+    const totalSales = salesData.reduce((sum, sale) => sum + (sale.grandTotal || 0), 0);
     const totalItems = salesData.reduce(
       (sum, sale) => sum + sale.items.reduce((itemSum, item) => itemSum + item.quantity, 0),
       0
@@ -229,7 +244,10 @@ export const generateSalesHistoryPDF = async () => {
                 <th>Order ID</th>
                 <th>Date & Time</th>
                 <th>Items</th>
-                <th>Total (₱)</th>
+                <th>Subtotal (₱)</th>
+                <th>Discount (₱)</th>
+                <th>Delivery Fee (₱)</th>
+                <th>Grand Total (₱)</th>
               </tr>
             </thead>
             <tbody>
@@ -243,11 +261,14 @@ export const generateSalesHistoryPDF = async () => {
                         ${sale.items
                           .map(
                             (item: SaleItem) =>
-                              `${item.name} (Qty: ${item.quantity} @ ₱${item.price.toFixed(2)})`
+                              `${item.name} (Qty: ${item.quantity} @ ₱${(item.price || 0).toFixed(2)})`
                           )
                           .join('<br>')}
                       </td>
-                      <td>₱${sale.total.toFixed(2)}</td>
+                      <td>₱${(sale.total || 0).toFixed(2)}</td>
+                      <td>${sale.discount > 0 ? '-₱' + (sale.discount || 0).toFixed(2) : '₱0.00'}</td>
+                      <td>₱${(sale.deliveryFee || 0).toFixed(2)}</td>
+                      <td>₱${(sale.grandTotal || 0).toFixed(2)}</td>
                     </tr>
                   `
                 )

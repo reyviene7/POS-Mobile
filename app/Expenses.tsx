@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import Toast from 'react-native-toast-message';
 import api from '../api';
 import ExpensesModal from '../src/components/modals/ExpensesModal';
@@ -249,82 +250,83 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFDEB',
-    padding: 20,
-    paddingTop: 48,
+    paddingHorizontal: wp('5%'),
+    paddingTop: hp('6%'),
   },
   title: {
-    fontSize: 26,
+    fontSize: wp('7%'),
     fontWeight: 'bold',
     color: '#D97706',
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: hp('1%'),
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     textAlign: 'center',
     color: '#6B7280',
-    marginBottom: 16,
+    marginBottom: hp('2%'),
   },
   addButton: {
     backgroundColor: '#FCD34D',
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 30,
+    borderRadius: wp('3%'),
+    paddingVertical: hp('2%'),
+    paddingHorizontal: wp('8%'),
     alignSelf: 'center',
-    marginBottom: 12,
+    marginBottom: hp('2%'),
     borderWidth: 1,
     borderColor: '#F59E0B',
   },
   addButtonText: {
     color: '#92400E',
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '700',
   },
   card: {
     flexDirection: 'row',
     backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 14,
-    marginHorizontal: 12,
-    marginBottom: 12,
+    borderRadius: wp('3%'),
+    padding: wp('4%'),
+    marginHorizontal: wp('3%'),
+    marginBottom: hp('1.5%'),
     elevation: 2,
   },
   type: {
-    fontSize: 16,
+    fontSize: wp('4.5%'),
     fontWeight: 'bold',
     color: '#1F2937',
   },
   remarks: {
-    fontSize: 14,
+    fontSize: wp('3.8%'),
     color: '#6B7280',
-    marginTop: 2,
+    marginTop: hp('0.3%'),
   },
   datetime: {
-    fontSize: 12,
+    fontSize: wp('3.2%'),
     color: '#9CA3AF',
-    marginTop: 4,
+    marginTop: hp('0.5%'),
   },
   side: {
     alignItems: 'flex-end',
     justifyContent: 'space-between',
-    marginLeft: 12,
+    marginLeft: wp('3%'),
   },
   amount: {
-    fontSize: 16,
+    fontSize: wp('4.5%'),
     fontWeight: 'bold',
     color: '#16A34A',
   },
   deleteBtn: {
-    marginTop: 4,
-    padding: 4,
+    marginTop: hp('0.5%'),
+    padding: wp('1.5%'),
   },
   deleteText: {
-    fontSize: 18,
+    fontSize: wp('5%'),
   },
   emptyText: {
     textAlign: 'center',
-    marginTop: 40,
+    marginTop: hp('6%'),
     color: '#9CA3AF',
+    fontSize: wp('4%'),
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -335,7 +337,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#EF4444',
     textAlign: 'center',
-    marginBottom: 16,
-    fontSize: 16,
+    marginBottom: hp('2%'),
+    fontSize: wp('4%'),
   },
 });

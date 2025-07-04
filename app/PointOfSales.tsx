@@ -1,11 +1,16 @@
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Link, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { Link, Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  BackHandler,
   FlatList,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -16,6 +21,7 @@ import {
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import api from '../api';
+
 
 type Product = {
   productId: string;
@@ -64,50 +70,9 @@ export default function PointOfSales() {
   const [loading, setLoading] = useState(true);
   const [showScrollPrompt, setShowScrollPrompt] = useState(true);
   const scrollY = useRef(new Animated.Value(0)).current;
-
-  const scrollPromptOpacity = scrollY.interpolate({
-    inputRange: [0, 30],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
-
-  useEffect(() => {
-    const initializeCart = async () => {
-      try {
-        console.log('PointOfSales: cartString received:', cartString);
-        if (cartString) {
-          const parsedCart =
-            typeof cartString === 'string'
-              ? JSON.parse(cartString)
-              : Array.isArray(cartString) && cartString.length > 0
-              ? JSON.parse(cartString[0])
-              : [];
-          setCart(parsedCart);
-          console.log('PointOfSales: Cart set from cartString:', parsedCart);
-        } else {
-          await AsyncStorage.removeItem('cart');
-          setCart([]);
-          console.log('PointOfSales: Cart cleared and set to []');
-        }
-        const storedCart = await AsyncStorage.getItem('cart');
-        console.log('PointOfSales: AsyncStorage cart after init:', storedCart);
-      } catch (error) {
-        console.error('Failed to initialize cart:', error);
-        setCart([]);
-      }
-    };
-    initializeCart();
-    fetchData();
-  }, [cartString]);
-
-  useEffect(() => {
-    if (selectedProductGroup && selectedProductGroup.variants.length === 1) {
-      setSelectedVariant(selectedProductGroup.variants[0]);
-    } else {
-      setSelectedVariant(null);
-    }
-  }, [selectedProductGroup]);
-
+  const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const navigation = useNavigation();
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -186,6 +151,85 @@ export default function PointOfSales() {
     }
   };
 
+  const scrollPromptOpacity = scrollY.interpolate({
+    inputRange: [0, 30],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
+  useEffect(() => {
+    const checkLogin = async () => {
+      const status = await AsyncStorage.getItem('isLoggedIn');
+      setIsLoggedIn(status === 'true');
+    };
+    checkLogin();
+  }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        router.replace('/Home');
+        return true;
+      };
+
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      navigation.setOptions?.({ gestureEnabled: false });
+
+      return () => backHandler.remove();
+    }, [])
+  );
+  
+  useEffect(() => {
+    const initializeCart = async () => {
+      try {
+        console.log('PointOfSales: cartString received:', cartString);
+        if (cartString) {
+          const parsedCart =
+            typeof cartString === 'string'
+              ? JSON.parse(cartString)
+              : Array.isArray(cartString) && cartString.length > 0
+              ? JSON.parse(cartString[0])
+              : [];
+          setCart(parsedCart);
+          console.log('PointOfSales: Cart set from cartString:', parsedCart);
+        } else {
+          await AsyncStorage.removeItem('cart');
+          setCart([]);
+          console.log('PointOfSales: Cart cleared and set to []');
+        }
+        const storedCart = await AsyncStorage.getItem('cart');
+        console.log('PointOfSales: AsyncStorage cart after init:', storedCart);
+      } catch (error) {
+        console.error('Failed to initialize cart:', error);
+        setCart([]);
+      }
+    };
+    initializeCart();
+    fetchData();
+  }, [cartString]);
+
+  useEffect(() => {
+    if (selectedProductGroup && selectedProductGroup.variants.length === 1) {
+      setSelectedVariant(selectedProductGroup.variants[0]);
+    } else {
+      setSelectedVariant(null);
+    }
+  }, [selectedProductGroup]);
+
+  if (isLoggedIn === null) {
+    return (
+      <View style={styles.loadingOverlay}>
+        <Text style={styles.loadingText}>Checking login...</Text>
+      </View>
+    );
+  }
+
+  if (!isLoggedIn) {
+    return <Redirect href="/" />;
+  }
+
+  
   const filteredProducts =
     selectedCategory === 'All'
       ? groupedProducts
@@ -361,10 +405,10 @@ export default function PointOfSales() {
       </View>
 
       <Animated.ScrollView
-        contentContainerStyle={[styles.grid, { paddingBottom: 200 }]}
+        contentContainerStyle={[styles.grid, { paddingBottom: Platform.OS === 'ios' ? 250 : 200, }]}
         scrollEventThrottle={16}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
-          useNativeDriver: false,
+          useNativeDriver: true ,
         })}
       >
         {filteredProducts.map((group) => (
@@ -488,6 +532,11 @@ export default function PointOfSales() {
             setSelectedVariant(null);
           }}
         >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.modalBackground}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+          >
           <View style={styles.modalBackground}>
             <View style={styles.modalContent}>
               <TouchableOpacity
@@ -497,7 +546,7 @@ export default function PointOfSales() {
                   setSelectedVariant(null);
                 }}
               >
-                <Text style={styles.closeText}>Back</Text>
+                <Ionicons name="close" size={24} color="#FBBF24" />
               </TouchableOpacity>
 
               <Text style={styles.modalTitle}>{selectedProductGroup.productName}</Text>
@@ -577,6 +626,7 @@ export default function PointOfSales() {
               </TouchableOpacity>
             </View>
           </View>
+          </KeyboardAvoidingView>
         </Modal>
       )}
     </SafeAreaView>
@@ -588,7 +638,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFDEB',
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: Platform.OS === 'ios' ? 0 : 12,
     position: 'relative',
   },
   loadingOverlay: {
@@ -644,8 +694,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
-    overflow: 'hidden',
+    elevation: Platform.OS === 'android' ? 4 : 2,
+    overflow: Platform.OS === 'android' ? 'hidden' : 'visible',
   },
   image: {
     width: '100%',
@@ -672,15 +722,20 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   modalBackground: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 1000, 
   },
   modalContent: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 20,
+    padding: Platform.select({ ios: 20, android: 16 }),
     width: '80%',
     position: 'relative',
   },
@@ -688,7 +743,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     right: 10,
-    padding: 5,
+    zIndex: 10,
+    padding: 8,
   },
   closeText: {
     fontSize: 18,

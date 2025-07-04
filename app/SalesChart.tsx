@@ -98,6 +98,7 @@ export default function SalesChart() {
         width={screenWidth * 0.8}
         height={180}
         yAxisLabel="₱"
+        yAxisSuffix=""
         chartConfig={chartConfig}
         verticalLabelRotation={0}
         fromZero

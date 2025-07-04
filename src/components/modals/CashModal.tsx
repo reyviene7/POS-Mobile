@@ -134,6 +134,7 @@ export default function CashModal({ visible, onClose, transaction, onSave, onDel
           )}
           <TextInput
             placeholder="Amount"
+            placeholderTextColor="#4B5563"
             style={styles.input}
             value={amount}
             onChangeText={setAmount}

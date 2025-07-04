@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import Toast from 'react-native-toast-message';
 import api from '../api';
 import { uploadToCloudinary } from '../CloudinaryConfig';
@@ -379,8 +380,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFBEB',
-    padding: 16,
-    paddingTop: 38,
+    padding: wp('4%'),
+    paddingTop: hp('5%'),
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -389,17 +390,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 28,
+    fontSize: wp('7%'),
     fontWeight: '800',
     color: '#F59E0B',
     textAlign: 'center',
-    marginBottom: 6,
+    marginBottom: hp('1%'),
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     color: '#7C3AED',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: hp('2%'),
   },
   errorText: {
     color: '#EF4444',
@@ -410,17 +411,17 @@ const styles = StyleSheet.create({
   viewModeContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: hp('2%'),
     backgroundColor: '#FEF3C7',
-    borderRadius: 12,
-    paddingVertical: 6,
+    borderRadius: wp('3%'),
+    paddingVertical: hp('1%'),
     elevation: 2,
   },
   viewModeButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    marginHorizontal: 8,
+    paddingVertical: hp('1.2%'),
+    paddingHorizontal: wp('5%'),
+    borderRadius: wp('6%'),
+    marginHorizontal: wp('2%'),
     backgroundColor: '#FDE68A',
   },
   activeViewMode: {
@@ -435,9 +436,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FEF3C7',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    marginBottom: 16,
+    borderRadius: wp('4%'),
+    paddingHorizontal: wp('3%'),
+    marginBottom: hp('2%'),
     elevation: 2,
   },
   filterLabel: {
@@ -472,7 +473,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
   gridCard: {
-    width: (screenWidth - 32 - 26) / 3,
+    width: wp('29%'),
     backgroundColor: '#FFF',
     borderRadius: 16,
     marginHorizontal: 2,
@@ -487,7 +488,7 @@ const styles = StyleSheet.create({
   },
   gridImage: {
     width: '100%',
-    height: 100,
+    height: wp('25%'),
     backgroundColor: '#F3F4F6',
   },
   details: {
@@ -527,12 +528,12 @@ const styles = StyleSheet.create({
   },
   floatingButton: {
     position: 'absolute',
-    bottom: 24,
-    right: 24,
+    bottom: hp('3%'),
+    right: wp('6%'),
     backgroundColor: '#F59E0B',
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: wp('14%'),
+    height: wp('14%'),
+    borderRadius: wp('7%'),
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 6,

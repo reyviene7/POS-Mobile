@@ -11,6 +11,10 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import {
+  heightPercentageToDP as hp,
+  widthPercentageToDP as wp,
+} from 'react-native-responsive-screen';
 import Toast from 'react-native-toast-message';
 import { captureRef } from 'react-native-view-shot';
 
@@ -364,97 +368,97 @@ export default function ReceiptPrint() {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
+    padding: wp('4%'),
     backgroundColor: '#FFFDE7',
   },
   receipt: {
     backgroundColor: '#ffffff',
-    padding: 16,
-    borderRadius: 12,
+    padding: wp('4%'),
+    borderRadius: wp('3%'),
     elevation: 2,
   },
   storeName: {
-    fontSize: 20,
+    fontSize: wp('5.5%'),
     fontWeight: 'bold',
     textAlign: 'center',
   },
   tagline: {
-    fontSize: 11,
+    fontSize: wp('3.2%'),
     textAlign: 'center',
-    marginTop: 4,
-    marginBottom: 6,
+    marginTop: hp('0.5%'),
+    marginBottom: hp('1%'),
     fontStyle: 'italic',
     color: '#6B7280',
   },
   receiptNo: {
-    fontSize: 12,
+    fontSize: wp('3.5%'),
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: hp('1%'),
   },
   customerContainer: {
-    marginBottom: 8,
+    marginBottom: hp('1%'),
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: wp('4%'),
     fontWeight: '600',
     color: '#B45309',
-    marginBottom: 4,
+    marginBottom: hp('0.5%'),
   },
   customerText: {
-    fontSize: 12,
+    fontSize: wp('3.5%'),
     color: '#78350F',
-    marginBottom: 2,
+    marginBottom: hp('0.5%'),
   },
   divider: {
     borderBottomWidth: 1,
     borderBottomColor: '#D1D5DB',
-    marginVertical: 8,
+    marginVertical: hp('1.2%'),
   },
   rowHeader: {
     flexDirection: 'row',
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: hp('0.8%'),
   },
   row: {
     flexDirection: 'row',
-    marginBottom: 4,
+    marginBottom: hp('0.8%'),
   },
-  itemCol: { flex: 2, fontSize: 12 },
-  qtyCol: { flex: 1, fontSize: 12, textAlign: 'center' },
-  priceCol: { flex: 1, fontSize: 12, textAlign: 'right' },
-  subCol: { flex: 1, fontSize: 12, textAlign: 'right' },
+  itemCol: { flex: 2, fontSize: wp('3.2%') },
+  qtyCol: { flex: 1, fontSize: wp('3.2%'), textAlign: 'center' },
+  priceCol: { flex: 1, fontSize: wp('3.2%'), textAlign: 'right' },
+  subCol: { flex: 1, fontSize: wp('3.2%'), textAlign: 'right' },
   addonText: {
-    paddingLeft: 8,
+    paddingLeft: wp('2%'),
   },
   meta: {
-    fontSize: 12,
-    marginBottom: 2,
+    fontSize: wp('3.2%'),
+    marginBottom: hp('0.5%'),
   },
   totalContainer: {
     alignItems: 'flex-end',
   },
   total: {
-    fontSize: 13,
+    fontSize: wp('3.5%'),
     textAlign: 'right',
     fontWeight: '600',
-    marginBottom: 2,
+    marginBottom: hp('0.5%'),
   },
   footer: {
-    fontSize: 11,
+    fontSize: wp('3%'),
     textAlign: 'center',
-    marginTop: 2,
+    marginTop: hp('0.5%'),
     color: '#6B7280',
   },
   button: {
     backgroundColor: '#4F46E5',
-    padding: 12,
-    marginTop: 10,
-    borderRadius: 8,
+    padding: hp('1.8%'),
+    marginTop: hp('1.5%'),
+    borderRadius: wp('2.2%'),
     alignItems: 'center',
   },
   buttonText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: wp('3.8%'),
   },
 });
