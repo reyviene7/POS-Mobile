@@ -51,26 +51,38 @@ export default function Login() {
         }, 1500);
       }
     } catch (error) {
-      let errorMessage = 'Failed to connect to the server. Please try again.';
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'response' in error &&
-        (error as any).response?.data === 'Invalid credentials'
-      ) {
-        errorMessage = 'Invalid username or password.';
+      let errorMessage = 'Something went wrong. Try again!';
+      let toastType = 'error';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Network Error')) {
+          errorMessage = 'No connection to the kitchen!';
+          toastType = 'error';
+        } else if (
+          typeof error === 'object' &&
+          error !== null &&
+          'response' in error &&
+          (error as any).response?.data === 'Invalid credentials'
+        ) {
+          errorMessage = 'Wrong recipe! Try again.';
+          toastType = 'error';
+        }
       }
+
       Toast.show({
-        type: 'error',
-        text1: '🍞😣 Oops!',
+        type: toastType,
+        text1: '🍞 Oops!',
         text2: errorMessage,
         position: 'top',
         visibilityTime: 3000,
         autoHide: true,
         topOffset: 40,
+        props: {
+          // Custom props for your toast config
+          emoji: '😣',
+          bgColor: '#FFEBEE', // Light pink background
+        }
       });
-    } finally {
-      setLoading(false);
     }
   };
 

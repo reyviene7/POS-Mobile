@@ -189,8 +189,16 @@ export default function AmountReceived() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView style={styles.scrollView}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
           <Text style={styles.header}>Order Summary</Text>
 
           {/* Cart Items */}
@@ -311,13 +319,21 @@ export default function AmountReceived() {
             <Text style={styles.changeLabel}>Change: ₱{(change || 0).toFixed(2)}</Text>
           </View>
 
-          <TouchableOpacity style={styles.exactButton} onPress={handleExactAmount}>
-            <Text style={styles.exactButtonText}>EXACT AMOUNT</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.proceedButton} onPress={handleProceed}>
-            <Text style={styles.proceedText}>PROCEED</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.exactButton]} 
+              onPress={handleExactAmount}
+            >
+              <Text style={styles.exactButtonText}>EXACT AMOUNT</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.proceedButton]} 
+              onPress={handleProceed}
+            >
+              <Text style={styles.proceedText}>PROCEED</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -332,6 +348,23 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: hp('10%'), // Extra padding for keyboard
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: hp('2%'),
+    gap: wp('2%'), // Space between buttons
+  },
+  actionButton: {
+    flex: 1, // Equal width
+    paddingVertical: hp('2%'),
+    borderRadius: wp('2%'),
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: hp('6%'),
   },
   header: {
     fontSize: wp('5.5%'),
@@ -424,6 +457,7 @@ const styles = StyleSheet.create({
   centered: {
     alignItems: 'center',
     marginBottom: hp('2%'),
+    marginTop: hp('1%'),
   },
   subLabel: {
     fontSize: wp('4%'),
@@ -437,7 +471,8 @@ const styles = StyleSheet.create({
     padding: hp('1.5%'),
     fontSize: wp('4.5%'),
     textAlign: 'center',
-    width: wp('80%'),
+    width: '100%',
+    maxWidth: wp('80%'),
     borderWidth: 1,
     borderColor: '#FDE68A',
     elevation: 2,
@@ -475,11 +510,6 @@ const styles = StyleSheet.create({
   },
   exactButton: {
     backgroundColor: '#10B981',
-    paddingVertical: hp('2%'),
-    borderRadius: wp('2%'),
-    alignItems: 'center',
-    marginVertical: hp('1.5%'),
-    width: '100%',
   },
   exactButtonText: {
     color: 'white',
@@ -488,11 +518,6 @@ const styles = StyleSheet.create({
   },
   proceedButton: {
     backgroundColor: '#4F46E5',
-    paddingVertical: hp('2%'),
-    borderRadius: wp('2%'),
-    alignItems: 'center',
-    marginTop: hp('1%'),
-    width: '100%',
   },
   proceedText: {
     color: 'white',

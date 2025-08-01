@@ -62,6 +62,17 @@ export default function RootLayout() {
             <Stack.Screen name="ReceiptPrint" options={{ title: '🧾 Receipt Toaster' }} />
             <Stack.Screen name="PaymentComplete" options={{ title: '✅ Payment Toasted!' }} />
             <Stack.Screen name="PaymentOption" options={{ title: '💳 Payment Choices' }} />
+            <Stack.Screen 
+              name="PrintConfig" 
+              options={{ 
+                title: '🖨️ Printer Setup',
+                headerRight: () => (
+                  <View style={styles.headerRight}>
+                    <Text style={styles.headerRightText}>Bluetooth</Text>
+                  </View>
+                )
+              }} 
+            />
           </Stack>
           <Toast config={toastConfig} />
         </View>
@@ -106,5 +117,17 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.2)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
+  },
+  headerRight: {
+    marginRight: 15,
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 15,
+  },
+  headerRightText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
