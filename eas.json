@@ -9,24 +9,33 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
       }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "API_BASE_URL": "https://theposwizard.com/api",
+        "API_BASE_URL": "http://192.168.1.23:8080/api",
         "CLOUDINARY_CLOUD_NAME": "dzwjjpvdb",
         "CLOUDINARY_API_KEY": "626448337993824",
         "CLOUDINARY_UPLOAD_PRESET": "EggCitedImages"
       },
       "android": {
         "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
       }
     }
   },

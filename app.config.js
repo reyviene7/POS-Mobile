@@ -8,10 +8,12 @@ module.exports = {
     orientation: 'portrait',
     icon: 'https://res.cloudinary.com/dzwjjpvdb/image/upload/v1750444683/EggCited/q0bpsuj3u1t6xmmobxvk.jpg',
     scheme: 'posmobile',
+    jsEngine: "jsc",
     userInterfaceStyle: 'automatic',
     newArchEnabled: true,
     ios: {
       supportsTablet: true,
+      bundleIdentifier: 'com.reyviene7.posmobile',
     },
     android: {
       adaptiveIcon: {
@@ -20,6 +22,13 @@ module.exports = {
       },
       edgeToEdgeEnabled: true,
       package: 'com.reyviene7.posmobile',
+      permissions: [
+        'BLUETOOTH',
+        'BLUETOOTH_ADMIN',
+        'BLUETOOTH_CONNECT',
+        'BLUETOOTH_SCAN',
+        'ACCESS_FINE_LOCATION'
+      ]
     },
     web: {
       bundler: 'metro',
@@ -46,7 +55,7 @@ module.exports = {
       eas: {
         projectId: '80ca0597-91d3-4a4c-ae0b-8fbc1be8b388',
       },
-      apiBaseUrl: process.env.API_BASE_URL ?? 'https://theposwizard.com/api',
+      apiBaseUrl: process.env.API_BASE_URL ?? 'http://192.168.1.23:8080/api',
       apiTimeout: parseInt(process.env.API_TIMEOUT ?? '10000', 10),
       
       cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
