@@ -12,13 +12,14 @@ import {
   Modal,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import api from '../api';
 
@@ -376,7 +377,7 @@ export default function PointOfSales() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={{ flex: 1 }} edges={['top']}>
       {loading && (
         <View style={styles.loadingOverlay}>
           <Text style={styles.loadingText}>Loading Menu...</Text>
@@ -533,9 +534,9 @@ export default function PointOfSales() {
           }}
         >
           <KeyboardAvoidingView
+            style={{ flex: 1 }}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={styles.modalBackground}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
           >
           <View style={styles.modalBackground}>
             <View style={styles.modalContent}>
@@ -638,7 +639,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFDEB',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 0 : 12,
+    paddingTop: Platform.OS === 'ios'
+      ? 0
+      : Platform.OS === 'android'
+      ? StatusBar.currentHeight || 12
+      : 12,
     position: 'relative',
   },
   loadingOverlay: {
@@ -682,7 +687,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    paddingBottom: 16,
+    paddingBottom: Platform.OS === 'ios' ? 250 : 200,
   },
   card: {
     width: '48%',
@@ -736,8 +741,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: Platform.select({ ios: 20, android: 16 }),
-    width: '80%',
-    position: 'relative',
+    width: '90%',
+    maxWidth: 400,
+    maxHeight: Platform.OS === 'android' ? '80%' : '85%',
   },
   closeButton: {
     position: 'absolute',
@@ -876,7 +882,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 10,
+    padding: Platform.OS === 'android' ? 12 : 10,
     backgroundColor: '#E5E7EB',
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
@@ -885,10 +891,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     elevation: 5,
+    height: Platform.OS === 'android' ? 70 : 60,
   },
   reviewButton: {
     backgroundColor: '#FBBF24',
-    paddingVertical: 10,
+    paddingVertical: Platform.OS === 'android' ? 12 : 10,
+    minHeight: Platform.OS === 'android' ? 48 : 44, 
     paddingHorizontal: 20,
     borderRadius: 12,
   },
@@ -956,7 +964,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0FDF4',
     padding: 12,
     borderRadius: 12,
-    marginBottom: 80,
+    marginBottom: Platform.OS === 'android' ? 90 : 80,
+    marginHorizontal: 8,
   },
   cartReviewTitle: {
     fontSize: 16,
