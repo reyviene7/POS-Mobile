@@ -49,7 +49,7 @@ export default function Home() {
       <TouchableOpacity
         style={[styles.button, { backgroundColor: '#F43F5E' }]}
         onPress={async () => {
-          await AsyncStorage.removeItem('isLoggedIn');
+        await AsyncStorage.multiRemove(['isLoggedIn', 'username']);
           setIsLoggedIn(false);
         }}
       >
