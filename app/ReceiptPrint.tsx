@@ -205,19 +205,15 @@ export default function ReceiptPrint() {
       await BluetoothEscposPrinter.printText("Purok 10 Tambacan, Iligan City\n\r", {});
       await BluetoothEscposPrinter.printText("+639617287606\n\r", {});
       await BluetoothEscposPrinter.printText(`Receipt #: ${receiptNo}\n\r`, {});
-      await BluetoothEscposPrinter.printColumn(
-        [20, 20], // adjust widths depending on your paper size
-        [
-          BluetoothEscposPrinter.ALIGN.LEFT,
-          BluetoothEscposPrinter.ALIGN.RIGHT
-        ],
-        [dateStr, timeStr],
-        {}
-      );
-      await BluetoothEscposPrinter.printText("--------------------------------\n\r", {});
+      await BluetoothEscposPrinter.printText("────────────────────────────────\n\r", {});
 
       // --- PRINT RECEIPT CONTENT ---
       await printReceiptContent();
+
+      await BluetoothEscposPrinter.printText("────────────────────────────────\n\r", {});
+      await BluetoothEscposPrinter.printText(`Item/s: ${itemCount}\n\r`, {});
+      await BluetoothEscposPrinter.printText(`Date | Time: ${dateStr} ${timeStr}\n\r`, {});
+      await BluetoothEscposPrinter.printText("────────────────────────────────\n\r", {});
 
       // --- FOOTER ---
       await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
@@ -243,7 +239,7 @@ export default function ReceiptPrint() {
         if (customerNumber) await BluetoothEscposPrinter.printText(`Contact: ${customerNumber}\n\r`, {});
         if (customerAddress) await BluetoothEscposPrinter.printText(`Address: ${customerAddress}\n\r`, {});
         if (notes) await BluetoothEscposPrinter.printText(`Notes: ${notes}\n\r`, {});
-        await BluetoothEscposPrinter.printText("--------------------------------\n\r", {});
+        await BluetoothEscposPrinter.printText("────────────────────────────────\n\r", {});
       }
 
       // --- ORDER HEADER ---
@@ -258,7 +254,7 @@ export default function ReceiptPrint() {
         ["Item", "Qty", "Price", "Total"],
         {}
       );
-      await BluetoothEscposPrinter.printText("--------------------------------\n\r", {});
+      await BluetoothEscposPrinter.printText("────────────────────────────────\n\r", {});
 
       // --- ORDER ITEMS ---
       for (const item of cart) {
@@ -297,51 +293,52 @@ export default function ReceiptPrint() {
           }
         }
       }
-      await BluetoothEscposPrinter.printText("--------------------------------\n\r", {});
+      await BluetoothEscposPrinter.printText("────────────────────────────────\n\r", {});
 
       // --- TOTALS ---
       await BluetoothEscposPrinter.printColumn(
         [20, 12],
-        [BluetoothEscposPrinter.ALIGN.LEFT, BluetoothEscposPrinter.ALIGN.RIGHT],
-        ["Subtotal", `P${subtotal.toFixed(2)}`],
+        [BluetoothEscposPrinter.ALIGN.RIGHT, BluetoothEscposPrinter.ALIGN.RIGHT],
+        ["Subtotal: ", `P${subtotal.toFixed(2)}`],
         {}
       );
       if (parsedDiscount > 0) {
         await BluetoothEscposPrinter.printColumn(
           [20, 12],
-          [BluetoothEscposPrinter.ALIGN.LEFT, BluetoothEscposPrinter.ALIGN.RIGHT],
-          ["Discount", `-P${parsedDiscount.toFixed(2)}`],
+          [BluetoothEscposPrinter.ALIGN.RIGHT, BluetoothEscposPrinter.ALIGN.RIGHT],
+          ["Discount: ", `-P${parsedDiscount.toFixed(2)}`],
           {}
         );
       }
       if (parsedDeliveryFee > 0) {
         await BluetoothEscposPrinter.printColumn(
           [20, 12],
-          [BluetoothEscposPrinter.ALIGN.LEFT, BluetoothEscposPrinter.ALIGN.RIGHT],
-          ["Delivery Fee", `P${parsedDeliveryFee.toFixed(2)}`],
+          [BluetoothEscposPrinter.ALIGN.RIGHT, BluetoothEscposPrinter.ALIGN.RIGHT],
+          ["Delivery Fee: ", `P${parsedDeliveryFee.toFixed(2)}`],
           {}
         );
       }
 
       await BluetoothEscposPrinter.printColumn(
         [20, 12],
-        [BluetoothEscposPrinter.ALIGN.LEFT, BluetoothEscposPrinter.ALIGN.RIGHT],
-        ["TOTAL", `P${parseFloat(total as string).toFixed(2)}`],
+        [BluetoothEscposPrinter.ALIGN.RIGHT, BluetoothEscposPrinter.ALIGN.RIGHT],
+        ["TOTAL: ", `P${parseFloat(total as string).toFixed(2)}`],
         {}
       );
       await BluetoothEscposPrinter.printColumn(
         [20, 12],
-        [BluetoothEscposPrinter.ALIGN.LEFT, BluetoothEscposPrinter.ALIGN.RIGHT],
-        [`PAYMENT (${method})`, `P${parseFloat(received as string).toFixed(2)}`],
+        [BluetoothEscposPrinter.ALIGN.RIGHT, BluetoothEscposPrinter.ALIGN.RIGHT],
+        [`RECEIVED (${method}): `, `P${parseFloat(received as string).toFixed(2)}`],
         {}
       );
       await BluetoothEscposPrinter.printColumn(
         [20, 12],
-        [BluetoothEscposPrinter.ALIGN.LEFT, BluetoothEscposPrinter.ALIGN.RIGHT],
-        ["CHANGE", `P${parseFloat(change as string).toFixed(2)}`],
+        [BluetoothEscposPrinter.ALIGN.RIGHT, BluetoothEscposPrinter.ALIGN.RIGHT],
+        ["CHANGE: ", `P${parseFloat(change as string).toFixed(2)}`],
         {}
       );
-      await BluetoothEscposPrinter.printText("--------------------------------\n\r", {});
+
+      await BluetoothEscposPrinter.printText("────────────────────────────────\n\r", {});
 
     } catch (error) {
       console.error('Error printing content:', error);
@@ -366,7 +363,6 @@ export default function ReceiptPrint() {
 
   const subtotal = calculateSubtotal();
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-
   const saveAsImage = async () => {
     const permission = await MediaLibrary.requestPermissionsAsync();
     if (!permission.granted) {
@@ -502,7 +498,7 @@ export default function ReceiptPrint() {
         </table>
         <hr />
         <p>Item/s: ${itemCount}</p>
-        <p>Date | Time: ${new Date().toLocaleString()}</p>
+        <p>Date | Time: ${dateStr} ${timeStr}</p>
         <hr />
         <div style="text-align:right;">
           <p>Subtotal: ₱${subtotal.toFixed(2)}</p>
@@ -576,7 +572,7 @@ export default function ReceiptPrint() {
 
         <View style={styles.divider} />
         <Text style={styles.meta}>Item/s: {itemCount}</Text>
-        <Text style={styles.meta}>Date | Time: {new Date().toLocaleString()}</Text>
+        <Text style={styles.meta}>Date | Time: {dateStr} {timeStr}</Text>
 
         <View style={styles.divider} />
         <View style={styles.totalContainer}>
