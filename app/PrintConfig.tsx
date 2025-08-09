@@ -259,14 +259,42 @@ export default function PrintConfig({ navigation }: { navigation: any }) {
       return;
     }
     try {
+      // Center alignment for header
+      await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
+
+      // Store name in bold & larger font
+      await BluetoothEscposPrinter.printText('*** EggCited ***\n\r', {
+        encoding: 'GBK',
+        codepage: 0,
+        widthtimes: 1, // bold width
+        heigthtimes: 1, // bold height
+        fonttype: 1,
+      });
+
+      await BluetoothEscposPrinter.printText('Purok 10, Tambacan\n\r', {});
+      await BluetoothEscposPrinter.printText('Iligan City 9200\n\r', {});
+      await BluetoothEscposPrinter.printText('Contact: +639617287606\n\r', {});
+
+      // Divider line
+      await BluetoothEscposPrinter.printText('────────────────────────\n\r', {});
+
+      // Test message
       await BluetoothEscposPrinter.printText('Hello from EggCited App!\n\r', {
         encoding: 'GBK',
         codepage: 0,
         widthtimes: 0,
         heigthtimes: 0,
-        fonttype: 1,
+        fonttype: 0,
       });
-      await BluetoothEscposPrinter.printText('\n\r', {});
+
+      await BluetoothEscposPrinter.printText('This is a test print.\n\r', {});
+
+      // Divider and footer
+      await BluetoothEscposPrinter.printText('────────────────────────\n\r', {});
+      await BluetoothEscposPrinter.printText('Thank you & Have a nice day!\n\r', {});
+
+      await BluetoothEscposPrinter.printText('\n\r\n\r', {}); // space before cut
+
       Toast.show({
         type: 'success',
         text1: '✅ Test Print Sent',
