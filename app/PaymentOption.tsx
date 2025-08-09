@@ -187,7 +187,7 @@ export default function PaymentOption() {
         <TouchableOpacity style={styles.option} onPress={() => handleSelectPayment('Credit')}>
           <Text style={styles.optionText}>💳 Credit</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.option} onPress={() => handleSelectPayment('Gcash')}>
+        <TouchableOpacity style={styles.option} onPress={() => handleSelectPayment('GCash')}>
           <Text style={styles.optionText}>📱 GCash</Text>
         </TouchableOpacity>
       </ScrollView>

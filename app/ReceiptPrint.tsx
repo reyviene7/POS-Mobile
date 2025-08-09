@@ -72,17 +72,15 @@ export default function ReceiptPrint() {
   const parsedDeliveryFee = parseFloat(deliveryFee as string || '0') || 0;
   const receiptRef = useRef(null);
   const [PrinterModule, setPrinterModule] = useState<any>(null);
-  const peso = "₱";
   const now = new Date();
-  const formattedDate = now.toLocaleString('en-US', {
-    weekday: 'short',   
-    month: 'short',   
-    day: 'numeric',    
-    year: 'numeric',    
-    hour: 'numeric',    
-    minute: '2-digit',  
-    hour12: true       
-  });
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const dateStr = `Date: ${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+  let hours = now.getHours();
+  const minutes = now.getMinutes().toString().padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+  const timeStr = `Time: ${hours}:${minutes} ${ampm}`;
 
   useEffect(() => {
     if (Platform.OS === 'android') {
@@ -205,9 +203,17 @@ export default function ReceiptPrint() {
         fonttype: 1
       });
       await BluetoothEscposPrinter.printText("Purok 10 Tambacan, Iligan City\n\r", {});
-      await BluetoothEscposPrinter.printText("Contact No. +639617287606\n\r", {});
+      await BluetoothEscposPrinter.printText("+639617287606\n\r", {});
       await BluetoothEscposPrinter.printText(`Receipt #: ${receiptNo}\n\r`, {});
-      await BluetoothEscposPrinter.printText(`${formattedDate}\n\r`, {});
+      await BluetoothEscposPrinter.printColumn(
+        [20, 20], // adjust widths depending on your paper size
+        [
+          BluetoothEscposPrinter.ALIGN.LEFT,
+          BluetoothEscposPrinter.ALIGN.RIGHT
+        ],
+        [dateStr, timeStr],
+        {}
+      );
       await BluetoothEscposPrinter.printText("--------------------------------\n\r", {});
 
       // --- PRINT RECEIPT CONTENT ---
@@ -216,7 +222,7 @@ export default function ReceiptPrint() {
       // --- FOOTER ---
       await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
       await BluetoothEscposPrinter.printText("\n\rTHIS IS NOT AN OFFICIAL RECEIPT\n\r", {});
-      await BluetoothEscposPrinter.printText("\n\rPlease Ask For A Cash Sales Invoice.\n\r", {});
+      await BluetoothEscposPrinter.printText("\n\rThank You!\n\r", {});
       await BluetoothEscposPrinter.printText("\n\r\n\r", {}); // feed paper
 
       Toast.show({ type: 'success', text1: 'Print Successful' });
@@ -258,11 +264,11 @@ export default function ReceiptPrint() {
       for (const item of cart) {
         const productName = `${item.product.productName}${item.product.size ? ` (${item.product.size})` : ''}${item.product.flavorName ? ` - ${item.product.flavorName}` : ''}`;
         const qty = item.quantity.toString();
-        const price = `${peso}${item.product.price.toFixed(2)}`;
-        const total = `${peso}${(item.product.price * item.quantity).toFixed(2)}`;
+        const price = `${item.product.price.toFixed(2)}`;
+        const total = `${(item.product.price * item.quantity).toFixed(2)}`;
 
         await BluetoothEscposPrinter.printColumn(
-          [16, 4, 8, 8],
+          [12, 4, 8, 8],
           [
             BluetoothEscposPrinter.ALIGN.LEFT,
             BluetoothEscposPrinter.ALIGN.RIGHT,
@@ -278,14 +284,14 @@ export default function ReceiptPrint() {
           const addon = item.addonDetails?.find(a => a.addonId === Number(addonId));
           if (addon) {
             await BluetoothEscposPrinter.printColumn(
-              [16, 4, 8, 8],
+              [12, 4, 8, 8],
               [
                 BluetoothEscposPrinter.ALIGN.LEFT,
                 BluetoothEscposPrinter.ALIGN.RIGHT,
                 BluetoothEscposPrinter.ALIGN.RIGHT,
                 BluetoothEscposPrinter.ALIGN.RIGHT
               ],
-              [`  + ${addon.addonName}`, qtyAddon.toString(), `${peso}${addon.price.toFixed(2)}`, `${peso}${(addon.price * qtyAddon).toFixed(2)}`],
+              [`  + ${addon.addonName}`, qtyAddon.toString(), `P${addon.price.toFixed(2)}`, `P${(addon.price * qtyAddon).toFixed(2)}`],
               {}
             );
           }
@@ -297,14 +303,14 @@ export default function ReceiptPrint() {
       await BluetoothEscposPrinter.printColumn(
         [20, 12],
         [BluetoothEscposPrinter.ALIGN.LEFT, BluetoothEscposPrinter.ALIGN.RIGHT],
-        ["Subtotal", `${peso}${subtotal.toFixed(2)}`],
+        ["Subtotal", `P${subtotal.toFixed(2)}`],
         {}
       );
       if (parsedDiscount > 0) {
         await BluetoothEscposPrinter.printColumn(
           [20, 12],
           [BluetoothEscposPrinter.ALIGN.LEFT, BluetoothEscposPrinter.ALIGN.RIGHT],
-          ["Discount", `-${peso}${parsedDiscount.toFixed(2)}`],
+          ["Discount", `-P${parsedDiscount.toFixed(2)}`],
           {}
         );
       }
@@ -312,7 +318,7 @@ export default function ReceiptPrint() {
         await BluetoothEscposPrinter.printColumn(
           [20, 12],
           [BluetoothEscposPrinter.ALIGN.LEFT, BluetoothEscposPrinter.ALIGN.RIGHT],
-          ["Delivery Fee", `${peso}${parsedDeliveryFee.toFixed(2)}`],
+          ["Delivery Fee", `P${parsedDeliveryFee.toFixed(2)}`],
           {}
         );
       }
@@ -320,19 +326,19 @@ export default function ReceiptPrint() {
       await BluetoothEscposPrinter.printColumn(
         [20, 12],
         [BluetoothEscposPrinter.ALIGN.LEFT, BluetoothEscposPrinter.ALIGN.RIGHT],
-        ["TOTAL", `${peso}${parseFloat(total as string).toFixed(2)}`],
+        ["TOTAL", `P${parseFloat(total as string).toFixed(2)}`],
         {}
       );
       await BluetoothEscposPrinter.printColumn(
         [20, 12],
         [BluetoothEscposPrinter.ALIGN.LEFT, BluetoothEscposPrinter.ALIGN.RIGHT],
-        [`PAYMENT (${method})`, `${peso}${parseFloat(received as string).toFixed(2)}`],
+        [`PAYMENT (${method})`, `P${parseFloat(received as string).toFixed(2)}`],
         {}
       );
       await BluetoothEscposPrinter.printColumn(
         [20, 12],
         [BluetoothEscposPrinter.ALIGN.LEFT, BluetoothEscposPrinter.ALIGN.RIGHT],
-        ["CHANGE", `${peso}${parseFloat(change as string).toFixed(2)}`],
+        ["CHANGE", `P${parseFloat(change as string).toFixed(2)}`],
         {}
       );
       await BluetoothEscposPrinter.printText("--------------------------------\n\r", {});
