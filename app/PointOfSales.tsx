@@ -74,6 +74,29 @@ export default function PointOfSales() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const navigation = useNavigation();
+  const [userInfo, setUserInfo] = useState<{ firstname: string; lastname: string } | null>(null);
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const username = await AsyncStorage.getItem('username');
+
+        if (username) {
+          const response = await api.get(`/users/username/${username}`);
+          const { firstname = 'Unknown', lastname = '' } = response.data;
+          setUserInfo({ firstname, lastname });
+        } else {
+          setUserInfo({ firstname: 'Unknown', lastname: '' });
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        setUserInfo({ firstname: 'Unknown', lastname: '' });
+      }
+    };
+
+    init();
+  }, []);
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -209,6 +232,28 @@ export default function PointOfSales() {
     initializeCart();
     fetchData();
   }, [cartString]);
+
+  useEffect(() => {
+  const checkPrinter = async () => {
+    const printerJson = await AsyncStorage.getItem('selectedPrinter');
+    if (!printerJson) {
+      Toast.show({
+        type: 'info',
+        text1: 'Printer Not Configured',
+        text2: 'Please set up your printer',
+      });
+      router.push('/PrintConfig');
+    }
+    else {
+      // Just check if we have a printer config, don't verify connection
+      const printerData = JSON.parse(printerJson);
+      if (!printerData || !printerData.address) {
+        router.push('/PrintConfig');
+      }
+    }
+  };
+  checkPrinter();
+}, []);
 
   useEffect(() => {
     if (selectedProductGroup && selectedProductGroup.variants.length === 1) {
@@ -383,6 +428,15 @@ export default function PointOfSales() {
           <Text style={styles.loadingText}>Loading Menu...</Text>
         </View>
       )}
+      <View style={styles.cashierContainer}>
+        <Ionicons name="person-circle-outline" size={24} color="#F59E0B" />
+        <Text style={styles.cashierLabel}>
+          Cashier:{' '}
+          <Text style={styles.cashierName}>
+            {userInfo?.firstname ?? 'Unknown'} {userInfo?.lastname ?? ''}
+          </Text>
+        </Text>
+      </View>
       <View style={styles.filterRow}>
         <ScrollView
           horizontal
@@ -657,8 +711,34 @@ const styles = StyleSheet.create({
     color: '#F59E0B',
     fontWeight: '600',
   },
+  cashierContainer: {
+    marginTop: -25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#FEF9C3',
+    borderBottomWidth: 1,
+    borderColor: '#FDE68A',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  cashierLabel: {
+    fontSize: 14,
+    marginLeft: 8,
+    color: '#374151',
+    fontWeight: '500',
+  },
+  cashierName: {
+    color: '#F59E0B',
+    fontWeight: 'bold',
+  },
   filterRow: {
-    height: 48,
+    height: 52,
+    marginLeft: 5,
     justifyContent: 'center',
   },
   filterScroll: {
@@ -690,11 +770,11 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'ios' ? 250 : 200,
   },
   card: {
-    width: '48%',
+    width: '44%',
     backgroundColor: '#F0FDF4',
     borderRadius: 16,
     marginBottom: 16,
-    marginHorizontal: '1%',
+    marginHorizontal: '3%',
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 6,
@@ -899,11 +979,14 @@ const styles = StyleSheet.create({
     minHeight: Platform.OS === 'android' ? 48 : 44, 
     paddingHorizontal: 20,
     borderRadius: 12,
+    justifyContent: 'center',  
+    alignItems: 'center',
   },
   reviewText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 14,
+    textAlign: 'center',
   },
   totalSection: {
     flex: 1,

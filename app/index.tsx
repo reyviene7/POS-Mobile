@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import Toast from 'react-native-toast-message';
 import api from '../api';
@@ -31,46 +31,60 @@ export default function Login() {
     setLoading(true);
     try {
       const response = await api.post('/users/login', { username, password });
-      if (response.status === 200) {
-        await AsyncStorage.setItem('isLoggedIn', 'true');
-        await AsyncStorage.setItem('user', JSON.stringify(response.data));
+      console.log('Login response:', response.data);
 
-        Toast.show({
-          type: 'success',
-          text1: '🥪 Welcome to EggCited!',
-          text2: 'You’re ready to make some toasty sandwiches!',
-          position: 'top',
-          visibilityTime: 2000,
-          autoHide: true,
-          topOffset: 40,
-        });
+      const { token, user, message } = response.data;
 
-        // Navigate AFTER a short delay to allow toast
-        setTimeout(() => {
-          router.replace('/Home');
-        }, 1500);
+      // Use user details from login response or fallback to username
+      const usernameToStore = user?.username || username;
+      const firstnameToStore = user?.firstname || '';
+      const userDetails = {
+        age: user?.age || 0,
+        firstname: user?.firstname || '',
+        lastname: user?.lastname || '',
+        role: user?.role || '',
+        username: user?.username || username,
+      };
+
+      // Store credentials
+      await AsyncStorage.setItem('isLoggedIn', 'true');
+      await AsyncStorage.setItem('username', usernameToStore);
+      await AsyncStorage.setItem('firstname', firstnameToStore);
+      await AsyncStorage.setItem('userDetails', JSON.stringify(userDetails));
+
+      if (token) {
+        await AsyncStorage.setItem('token', token);
+      } else {
+        console.warn('Login succeeded but no token received');
       }
-    } catch (error) {
+
+      // Log user details
+      console.log('User details:', userDetails);
+
+      Toast.show({
+        type: 'success',
+        text1: '🥪 Welcome to EggCited!',
+        text2: `Welcome, ${firstnameToStore}! You’re ready to make some toasty sandwiches!`,
+        position: 'top',
+        visibilityTime: 2000,
+        autoHide: true,
+        topOffset: 40,
+      });
+
+      setTimeout(() => {
+        router.replace('/Home');
+      }, 1500);
+    } catch (error: any) {
       let errorMessage = 'Something went wrong. Try again!';
-      let toastType = 'error';
-      
-      if (error instanceof Error) {
-        if (error.message.includes('Network Error')) {
-          errorMessage = 'No connection to the kitchen!';
-          toastType = 'error';
-        } else if (
-          typeof error === 'object' &&
-          error !== null &&
-          'response' in error &&
-          (error as any).response?.data === 'Invalid credentials'
-        ) {
-          errorMessage = 'Wrong recipe! Try again.';
-          toastType = 'error';
-        }
+
+      if (error?.message?.includes('Network Error')) {
+        errorMessage = 'No connection to the kitchen!';
+      } else if (error?.response?.data === 'Invalid credentials') {
+        errorMessage = 'Wrong recipe! Try again.';
       }
 
       Toast.show({
-        type: toastType,
+        type: 'error',
         text1: '🍞 Oops!',
         text2: errorMessage,
         position: 'top',
@@ -78,11 +92,12 @@ export default function Login() {
         autoHide: true,
         topOffset: 40,
         props: {
-          // Custom props for your toast config
           emoji: '😣',
-          bgColor: '#FFEBEE', // Light pink background
-        }
+          bgColor: '#FFEBEE',
+        },
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -96,7 +111,13 @@ export default function Login() {
         <ScrollView contentContainerStyle={styles.container} bounces={false} showsVerticalScrollIndicator={false}>
           <View style={styles.content}>
             <View style={styles.headerIcon}>
-              <Text style={styles.headerEmoji}>🥪</Text>
+              <Image
+                source={{
+                  uri: 'https://res.cloudinary.com/dzwjjpvdb/image/upload/v1754622867/LOGO_TRANSPARENT_ICON_rawimp.png',
+                }}
+                style={styles.headerImage}
+                resizeMode="contain"
+              />
             </View>
             <Text style={styles.title}>EggCited Sandwich Shop</Text>
             <Text style={styles.subtitle}>Login to start toasting!</Text>
@@ -166,9 +187,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
-  headerEmoji: {
-    fontSize: wp('18%'),
-    textAlign: 'center',
+  headerImage: {
+    width: '80%',   // adjust to keep some padding in the yellow circle
+    height: '80%',
   },
   title: {
     fontSize: wp('7.5%'),
