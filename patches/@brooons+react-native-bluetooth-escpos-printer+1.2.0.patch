@@ -1,0 +1,60 @@
+diff --git a/node_modules/@brooons/react-native-bluetooth-escpos-printer/android/build.gradle b/node_modules/@brooons/react-native-bluetooth-escpos-printer/android/build.gradle
+index def666c..8ce53ed 100644
+--- a/node_modules/@brooons/react-native-bluetooth-escpos-printer/android/build.gradle
++++ b/node_modules/@brooons/react-native-bluetooth-escpos-printer/android/build.gradle
+@@ -4,7 +4,6 @@ buildscript {
+         maven {url "https://repo.spring.io/plugins-release/"}
+         mavenCentral()
+         maven {
+-            // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
+             url "$rootDir/../node_modules/react-native/android"
+         }
+         maven {
+@@ -13,19 +12,19 @@ buildscript {
+     }
+ 
+     dependencies {
+-        classpath 'com.android.tools.build:gradle:3.1.4'
++        classpath 'com.android.tools.build:gradle:8.7.0'
+     }
+ }
+ 
+ apply plugin: 'com.android.library'
+ 
+ android {
+-    compileSdkVersion 28
+-    buildToolsVersion "28.0.3"
++    compileSdk 35
++    buildToolsVersion "35.0.0"
+ 
+     defaultConfig {
+-        minSdkVersion 16
+-        targetSdkVersion 24
++        minSdk 24
++        targetSdk 35
+         versionCode 1
+         versionName "1.0"
+     }
+@@ -37,6 +36,10 @@ android {
+             aidl.srcDirs = ['src/main/java']
+         }
+     }
++    compileOptions {
++        sourceCompatibility JavaVersion.VERSION_11
++        targetCompatibility JavaVersion.VERSION_11
++    }
+ }
+ 
+ repositories {
+@@ -54,7 +57,7 @@ repositories {
+ 
+ dependencies {
+     implementation fileTree(dir: 'libs', include: ['*.jar'])
+-    implementation 'com.facebook.react:react-native:+'  // From node_modules
+-    implementation group: 'com.android.support', name: 'support-v4', version: '27.0.0'
+-    implementation "com.google.zxing:core:3.3.0"
++    implementation 'com.facebook.react:react-native:0.74.5' // Ensure this matches your project's React Native version
++    implementation 'androidx.core:core:1.13.1'
++    implementation 'com.google.zxing:core:3.5.3'
+ }
+\ No newline at end of file
