@@ -16,7 +16,7 @@ export const toastConfig = {
       {...props}
       bgColor="#FFEBEE"  // Light pink for errors
       borderColor="#EF4444"  // Tomato red
-      emoji="🍞😢"  // Sad bread
+      emoji="😢"  // Sad bread
     />
   ),
   info: (props: any) => (
@@ -56,7 +56,6 @@ const SandwichToast = ({
 
 const styles = StyleSheet.create({
   toastBase: {
-    borderLeftWidth: 0,
     borderRadius: 16,
     borderWidth: 2,
     paddingVertical: 12,
