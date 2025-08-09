@@ -7,8 +7,15 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "env": {
+        "API_BASE_URL": "https://theposwizard.com/api",
+        "CLOUDINARY_CLOUD_NAME": "dzwjjpvdb",
+        "CLOUDINARY_API_KEY": "626448337993824",
+        "CLOUDINARY_UPLOAD_PRESET": "EggCitedImages"
+      },
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug"
       },
       "ios": {
         "simulator": true
@@ -17,7 +24,8 @@
     "preview": {
       "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
       },
       "ios": {
         "simulator": true
@@ -26,7 +34,7 @@
     "production": {
       "autoIncrement": true,
       "env": {
-        "API_BASE_URL": "http://192.168.1.23:8080/api",
+        "API_BASE_URL": "https://theposwizard.com/api",
         "CLOUDINARY_CLOUD_NAME": "dzwjjpvdb",
         "CLOUDINARY_API_KEY": "626448337993824",
         "CLOUDINARY_UPLOAD_PRESET": "EggCitedImages"
@@ -40,6 +48,11 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "track": "production",
+        "releaseStatus": "completed"
+      }
+    }
   }
 }

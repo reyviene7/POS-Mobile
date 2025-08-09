@@ -18,8 +18,9 @@ module.exports = {
     android: {
       adaptiveIcon: {
         foregroundImage: 'https://res.cloudinary.com/dzwjjpvdb/image/upload/v1750444683/EggCited/q0bpsuj3u1t6xmmobxvk.jpg',
-        backgroundColor: '#ffffff',
+        backgroundColor: '#FEDD56',
       },
+      jsEngine: "jsc",
       edgeToEdgeEnabled: true,
       package: 'com.reyviene7.posmobile',
       permissions: [
@@ -27,7 +28,8 @@ module.exports = {
         'BLUETOOTH_ADMIN',
         'BLUETOOTH_CONNECT',
         'BLUETOOTH_SCAN',
-        'ACCESS_FINE_LOCATION'
+        'ACCESS_FINE_LOCATION',
+        'ACCESS_COARSE_LOCATION' 
       ]
     },
     web: {
@@ -40,10 +42,9 @@ module.exports = {
       [
         'expo-splash-screen',
         {
-          image: 'https://res.cloudinary.com/dzwjjpvdb/image/upload/v1750444683/EggCited/q0bpsuj3u1t6xmmobxvk.jpg',
-          imageWidth: 200,
-          resizeMode: 'contain',
-          backgroundColor: '#ffffff',
+          image: 'https://res.cloudinary.com/dzwjjpvdb/image/upload/v1750505959/EggCited/ixxau4ellammx0drebgo.png',
+          resizeMode: 'contain',    
+          backgroundColor: '#FEDD56',
         },
       ],
     ],
@@ -55,7 +56,7 @@ module.exports = {
       eas: {
         projectId: '80ca0597-91d3-4a4c-ae0b-8fbc1be8b388',
       },
-      apiBaseUrl: process.env.API_BASE_URL ?? 'http://192.168.1.23:8080/api',
+      apiBaseUrl: process.env.API_BASE_URL ?? 'https://theposwizard.com/api',
       apiTimeout: parseInt(process.env.API_TIMEOUT ?? '10000', 10),
       
       cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
