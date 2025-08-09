@@ -6,19 +6,21 @@ import * as Sharing from 'expo-sharing';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from 'react-native';
-import { BluetoothEscposPrinter, BluetoothManager } from 'react-native-bluetooth-escpos-printer';
 import {
   heightPercentageToDP as hp,
   widthPercentageToDP as wp,
 } from 'react-native-responsive-screen';
 import Toast from 'react-native-toast-message';
 import { captureRef } from 'react-native-view-shot';
+import { getPrinter } from "../src/constants/printerUtils";
 
 type Product = {
   productId: string;
@@ -42,7 +44,9 @@ type CartItem = {
   addons: { [addonId: string]: number };
   addonDetails: Addon[];
 };
-
+export const screenOptions = {
+  contentStyle: { backgroundColor: '#FFFDE7' },
+};
 export default function ReceiptPrint() {
   const router = useRouter();
   const [printerConnected, setPrinterConnected] = useState(false);
@@ -67,6 +71,40 @@ export default function ReceiptPrint() {
   const parsedDiscount = parseFloat(discount as string || '0') || 0;
   const parsedDeliveryFee = parseFloat(deliveryFee as string || '0') || 0;
   const receiptRef = useRef(null);
+  const [PrinterModule, setPrinterModule] = useState<any>(null);
+  const peso = "₱";
+  const now = new Date();
+  const formattedDate = now.toLocaleString('en-US', {
+    weekday: 'short',   
+    month: 'short',   
+    day: 'numeric',    
+    year: 'numeric',    
+    hour: 'numeric',    
+    minute: '2-digit',  
+    hour12: true       
+  });
+
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      (async () => {
+        try {
+          const p = await getPrinter();
+          setPrinterModule(p);
+
+          if (p) {
+          const printerJson = await AsyncStorage.getItem('selectedPrinter');
+          if (printerJson) {
+            const printerData = JSON.parse(printerJson);
+            setPrinterName(printerData.name);
+            setPrinterConnected(printerData.connected || false);
+          }
+        }
+        } catch (err) {
+          console.error("Failed to load printer:", err);
+        }
+      })();
+    }
+  }, []);
 
   useEffect(() => {
     const loadReceiptNo = async () => {
@@ -88,35 +126,51 @@ export default function ReceiptPrint() {
     }
   }, [receivedReceiptNo]);
 
-  const renderPrinterStatus = () => (
-    <View style={styles.printerStatusContainer}>
-      <View style={styles.printerStatus}>
-        <Text style={styles.printerStatusText}>
-          {printerConnected ? `🖨️ Connected to ${printerName}` : '❌ No printer connected'}
-        </Text>
-        <TouchableOpacity 
-          onPress={() => router.push('/PrintConfig')}
-          style={styles.printerConfigButton}
-        >
-          <Text style={styles.printerConfigText}>
-            {printerConnected ? 'Change Printer' : 'Configure Printer'}
-          </Text>
-        </TouchableOpacity>
+  useEffect(() => {
+    const loadPrinter = async () => {
+      try {
+        const printerJson = await AsyncStorage.getItem('selectedPrinter');
+        if (printerJson) {
+          const printerData = JSON.parse(printerJson);
+          setPrinterName(printerData.name);
+          setPrinterConnected(printerData.connected || false);
+
+          if (!printerData.connected && PrinterModule) {
+          try {
+            await PrinterModule.BluetoothManager.connect(printerData.address);
+            setPrinterConnected(true);
+          } catch (err) {
+            console.error('Reconnection failed:', err);
+          }
+        }
+        }
+        else {
+        console.log('No printer found in AsyncStorage');
+        setPrinterConnected(false);
+        }
+      } catch (err) {
+        console.error('Failed to load printer:', err);
+      }
+    };
+    loadPrinter();
+  }, []);
+
+    if (!PrinterModule) {
+    return (
+      <View style={{ padding: 20 }}>
+        <Text>Loading printer module…</Text>
       </View>
-      {isPrinting && (
-        <View style={styles.printingIndicator}>
-          <ActivityIndicator size="small" color="#4F46E5" />
-          <Text style={styles.printingText}>Printing...</Text>
-        </View>
-      )}
-    </View>
-  );
+    );
+  }
+  
+  const { BluetoothEscposPrinter, BluetoothManager } = PrinterModule;
+  
   const handlePrint = async () => {
-    if (!printerConnected) {
+    if (!PrinterModule) {
       Toast.show({
         type: 'error',
-        text1: 'Printer Not Connected',
-        text2: 'Please configure a printer first',
+        text1: 'Printer Not Available',
+        text2: 'Printer module could not be loaded',
       });
       router.push('/PrintConfig');
       return;
@@ -124,46 +178,51 @@ export default function ReceiptPrint() {
 
     setIsPrinting(true);
     try {
-      const printer = await AsyncStorage.getItem('selectedPrinter');
-      if (!printer) throw new Error('No printer configured');
-
-      const printerData = JSON.parse(printer);
+      const printerJson = await AsyncStorage.getItem('selectedPrinter');
+      if (!printerJson) throw new Error('No printer configured');
+      const printerData = JSON.parse(printerJson);
       
-      // Check connection status first
-      const isConnected = await BluetoothManager.isConnected();
-      if (!isConnected) {
-        await BluetoothManager.connect(printerData.address);
+      const isBluetoothEnabled = await BluetoothManager.checkBluetoothEnabled();
+      if (!isBluetoothEnabled) {
+        await BluetoothManager.enableBluetooth();
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       }
-      
-      // Printer settings
-      await BluetoothEscposPrinter.setPrinter(BluetoothEscposPrinter.PRINT_WIDTH_80);
-      await BluetoothEscposPrinter.setAlignment(BluetoothEscposPrinter.ALIGN.CENTER);
-      
-      // Print header
-      await BluetoothEscposPrinter.printText('--- EGGcited Receipt ---\n\n', {});
-      
-      // Print content
+
+      // Connect only if not already connected
+      await BluetoothManager.connect(printerData.address);
+
+      // Init printer
+      await BluetoothEscposPrinter.printerInit();
+      await BluetoothEscposPrinter.setBlob(1);
+
+      // --- HEADER ---
+      await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
+      await BluetoothEscposPrinter.printText("EggCited\n\r", {
+        encoding: 'GBK',
+        codepage: 0,
+        widthtimes: 1,
+        heigthtimes: 1,
+        fonttype: 1
+      });
+      await BluetoothEscposPrinter.printText("Purok 10 Tambacan, Iligan City\n\r", {});
+      await BluetoothEscposPrinter.printText("Contact No. +639617287606\n\r", {});
+      await BluetoothEscposPrinter.printText(`Receipt #: ${receiptNo}\n\r`, {});
+      await BluetoothEscposPrinter.printText(`${formattedDate}\n\r`, {});
+      await BluetoothEscposPrinter.printText("--------------------------------\n\r", {});
+
+      // --- PRINT RECEIPT CONTENT ---
       await printReceiptContent();
-      
-      // Print footer
-      await BluetoothEscposPrinter.setAlignment(BluetoothEscposPrinter.ALIGN.CENTER);
-      await BluetoothEscposPrinter.printText('\nThank you!\n\n\n', {});
-      
-      // Cut paper (if supported)
-      await BluetoothEscposPrinter.cutPaper();
-      
-      Toast.show({
-        type: 'success',
-        text1: 'Print Successful',
-        text2: 'Receipt sent to printer',
-      });
-    } catch (error) {
-      console.error('Print error:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Print Error',
-        text2: (error instanceof Error && error.message) ? error.message : 'Failed to print receipt',
-      });
+
+      // --- FOOTER ---
+      await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
+      await BluetoothEscposPrinter.printText("\n\rTHIS IS NOT AN OFFICIAL RECEIPT\n\r", {});
+      await BluetoothEscposPrinter.printText("\n\rPlease Ask For A Cash Sales Invoice.\n\r", {});
+      await BluetoothEscposPrinter.printText("\n\r\n\r", {}); // feed paper
+
+      Toast.show({ type: 'success', text1: 'Print Successful' });
+    } catch (err) {
+      console.error(err);
+      Toast.show({ type: 'error', text1: 'Print Error', text2: 'Failed to print' });
     } finally {
       setIsPrinting(false);
     }
@@ -171,53 +230,113 @@ export default function ReceiptPrint() {
 
   const printReceiptContent = async () => {
     try {
-      await BluetoothEscposPrinter.setAlignment(BluetoothEscposPrinter.ALIGN.LEFT);
-      
-      // Customer details
+      // --- CUSTOMER INFO ---
       if (customerName || customerNumber || customerAddress || notes) {
-        await BluetoothEscposPrinter.printText('CUSTOMER DETAILS\n', {});
-        if (customerName) await BluetoothEscposPrinter.printText(`Name: ${customerName}\n`, {});
-        if (customerNumber) await BluetoothEscposPrinter.printText(`Contact: ${customerNumber}\n`, {});
-        if (customerAddress) await BluetoothEscposPrinter.printText(`Address: ${customerAddress}\n`, {});
-        if (notes) await BluetoothEscposPrinter.printText(`Notes: ${notes}\n`, {});
-        await BluetoothEscposPrinter.printText('------------------------------\n', {});
+        await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.LEFT);
+        if (customerName) await BluetoothEscposPrinter.printText(`Name: ${customerName}\n\r`, {});
+        if (customerNumber) await BluetoothEscposPrinter.printText(`Contact: ${customerNumber}\n\r`, {});
+        if (customerAddress) await BluetoothEscposPrinter.printText(`Address: ${customerAddress}\n\r`, {});
+        if (notes) await BluetoothEscposPrinter.printText(`Notes: ${notes}\n\r`, {});
+        await BluetoothEscposPrinter.printText("--------------------------------\n\r", {});
       }
 
-      // Order items
-      await BluetoothEscposPrinter.printText('ORDER DETAILS\n', {});
-      await BluetoothEscposPrinter.printText('------------------------------\n', {});
-      
+      // --- ORDER HEADER ---
+      await BluetoothEscposPrinter.printColumn(
+        [12, 4, 8, 8], // width in characters
+        [
+          BluetoothEscposPrinter.ALIGN.LEFT,
+          BluetoothEscposPrinter.ALIGN.RIGHT,
+          BluetoothEscposPrinter.ALIGN.RIGHT,
+          BluetoothEscposPrinter.ALIGN.RIGHT
+        ],
+        ["Item", "Qty", "Price", "Total"],
+        {}
+      );
+      await BluetoothEscposPrinter.printText("--------------------------------\n\r", {});
+
+      // --- ORDER ITEMS ---
       for (const item of cart) {
-        const productName = `${item.product.productName}${item.product.size ? `(${item.product.size})` : ''}${item.product.flavorName ? `-${item.product.flavorName}` : ''}`;
-        const truncatedName = productName.length > 20 ? productName.substring(0, 20) + '...' : productName;
-        
-        await BluetoothEscposPrinter.printText(`${truncatedName}\n`, {});
-        await BluetoothEscposPrinter.printText(`  Qty: ${item.quantity} x ₱${item.product.price.toFixed(2)} = ₱${(item.product.price * item.quantity).toFixed(2)}\n`, {});
-        
-        for (const [addonId, qty] of Object.entries(item.addons)) {
+        const productName = `${item.product.productName}${item.product.size ? ` (${item.product.size})` : ''}${item.product.flavorName ? ` - ${item.product.flavorName}` : ''}`;
+        const qty = item.quantity.toString();
+        const price = `${peso}${item.product.price.toFixed(2)}`;
+        const total = `${peso}${(item.product.price * item.quantity).toFixed(2)}`;
+
+        await BluetoothEscposPrinter.printColumn(
+          [16, 4, 8, 8],
+          [
+            BluetoothEscposPrinter.ALIGN.LEFT,
+            BluetoothEscposPrinter.ALIGN.RIGHT,
+            BluetoothEscposPrinter.ALIGN.RIGHT,
+            BluetoothEscposPrinter.ALIGN.RIGHT
+          ],
+          [productName, qty, price, total],
+          {}
+        );
+
+        // Addons (indented)
+        for (const [addonId, qtyAddon] of Object.entries(item.addons)) {
           const addon = item.addonDetails?.find(a => a.addonId === Number(addonId));
           if (addon) {
-            await BluetoothEscposPrinter.printText(`  + ${addon.addonName}: ${qty} x ₱${addon.price.toFixed(2)} = ₱${(addon.price * qty).toFixed(2)}\n`, {});
+            await BluetoothEscposPrinter.printColumn(
+              [16, 4, 8, 8],
+              [
+                BluetoothEscposPrinter.ALIGN.LEFT,
+                BluetoothEscposPrinter.ALIGN.RIGHT,
+                BluetoothEscposPrinter.ALIGN.RIGHT,
+                BluetoothEscposPrinter.ALIGN.RIGHT
+              ],
+              [`  + ${addon.addonName}`, qtyAddon.toString(), `${peso}${addon.price.toFixed(2)}`, `${peso}${(addon.price * qtyAddon).toFixed(2)}`],
+              {}
+            );
           }
         }
-        await BluetoothEscposPrinter.printText('------------------------------\n', {});
+      }
+      await BluetoothEscposPrinter.printText("--------------------------------\n\r", {});
+
+      // --- TOTALS ---
+      await BluetoothEscposPrinter.printColumn(
+        [20, 12],
+        [BluetoothEscposPrinter.ALIGN.LEFT, BluetoothEscposPrinter.ALIGN.RIGHT],
+        ["Subtotal", `${peso}${subtotal.toFixed(2)}`],
+        {}
+      );
+      if (parsedDiscount > 0) {
+        await BluetoothEscposPrinter.printColumn(
+          [20, 12],
+          [BluetoothEscposPrinter.ALIGN.LEFT, BluetoothEscposPrinter.ALIGN.RIGHT],
+          ["Discount", `-${peso}${parsedDiscount.toFixed(2)}`],
+          {}
+        );
+      }
+      if (parsedDeliveryFee > 0) {
+        await BluetoothEscposPrinter.printColumn(
+          [20, 12],
+          [BluetoothEscposPrinter.ALIGN.LEFT, BluetoothEscposPrinter.ALIGN.RIGHT],
+          ["Delivery Fee", `${peso}${parsedDeliveryFee.toFixed(2)}`],
+          {}
+        );
       }
 
-      // Totals
-      await BluetoothEscposPrinter.printText('TOTALS\n', {});
-      await BluetoothEscposPrinter.printText('------------------------------\n', {});
-      await BluetoothEscposPrinter.printText(`Subtotal: ₱${subtotal.toFixed(2)}\n`, {});
-      if (parsedDiscount > 0) await BluetoothEscposPrinter.printText(`Discount: -₱${parsedDiscount.toFixed(2)}\n`, {});
-      if (parsedDeliveryFee > 0) await BluetoothEscposPrinter.printText(`Delivery Fee: ₱${parsedDeliveryFee.toFixed(2)}\n`, {});
-      await BluetoothEscposPrinter.printText(`TOTAL: ₱${parseFloat(total as string).toFixed(2)}\n`, {});
-      await BluetoothEscposPrinter.printText(`PAYMENT (${method}): ₱${parseFloat(received as string).toFixed(2)}\n`, {});
-      await BluetoothEscposPrinter.printText(`CHANGE: ₱${parseFloat(change as string).toFixed(2)}\n`, {});
-      await BluetoothEscposPrinter.printText('------------------------------\n', {});
-      
-      // Receipt metadata
-      await BluetoothEscposPrinter.printText(`Receipt #: ${receiptNo}\n`, {});
-      await BluetoothEscposPrinter.printText(`Date: ${new Date().toLocaleString()}\n`, {});
-      await BluetoothEscposPrinter.printText('THIS IS NOT AN OFFICIAL RECEIPT\n', {});
+      await BluetoothEscposPrinter.printColumn(
+        [20, 12],
+        [BluetoothEscposPrinter.ALIGN.LEFT, BluetoothEscposPrinter.ALIGN.RIGHT],
+        ["TOTAL", `${peso}${parseFloat(total as string).toFixed(2)}`],
+        {}
+      );
+      await BluetoothEscposPrinter.printColumn(
+        [20, 12],
+        [BluetoothEscposPrinter.ALIGN.LEFT, BluetoothEscposPrinter.ALIGN.RIGHT],
+        [`PAYMENT (${method})`, `${peso}${parseFloat(received as string).toFixed(2)}`],
+        {}
+      );
+      await BluetoothEscposPrinter.printColumn(
+        [20, 12],
+        [BluetoothEscposPrinter.ALIGN.LEFT, BluetoothEscposPrinter.ALIGN.RIGHT],
+        ["CHANGE", `${peso}${parseFloat(change as string).toFixed(2)}`],
+        {}
+      );
+      await BluetoothEscposPrinter.printText("--------------------------------\n\r", {});
+
     } catch (error) {
       console.error('Error printing content:', error);
       throw error;
@@ -360,7 +479,8 @@ export default function ReceiptPrint() {
       <body style="font-family:monospace;padding:10px;">
         <div style="text-align:center;">
           <h2>EggCited</h2>
-          <p><em>At EggCited, we take the humble egg sandwich to the next level</em></p>
+          <p>Purok 10 Tambacan, Iligan City 9200</p>
+          <p>Contact: +639617287606</p>
           <p>Receipt No: ${receiptNo}</p>
         </div>
         <hr />
@@ -395,11 +515,13 @@ export default function ReceiptPrint() {
     `;
   };
 
-  return (
+  return (  
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFDE7' }}>
     <ScrollView contentContainerStyle={styles.container}>
       <View ref={receiptRef} collapsable={false} style={styles.receipt}>
         <Text style={styles.storeName}>EggCited</Text>
-        <Text style={styles.tagline}>At EggCited, we take the humble egg sandwich to the next level</Text>
+        <Text style={styles.address}>Purok 10 Tambacan, Iligan City 9200</Text>
+        <Text style={styles.contact}>Contact: +639617287606</Text>
         <Text style={styles.receiptNo}>Receipt No: {receiptNo}</Text>
 
         {(customerName || customerNumber || customerAddress || notes) && (
@@ -466,6 +588,56 @@ export default function ReceiptPrint() {
         <Text style={styles.footer}>Please Ask For A Cash Sales Invoice</Text>
       </View>
 
+      <View style={styles.printerStatusContainer}>
+        <View style={styles.printerStatus}>
+          {PrinterModule ? (
+            <>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={[
+                  styles.printerStatusIndicator,
+                  { backgroundColor: printerConnected ? '#10B981' : '#EF4444' }
+                ]} />
+                <Text style={styles.printerStatusText}>
+                  {printerConnected ? `Connected to ${printerName}` : 'Printer Not Connected'}
+                </Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.printerConfigButton}
+                onPress={() => router.push('/PrintConfig')}
+              >
+                <Text style={styles.printerConfigText}>
+                  {printerConnected ? 'Change' : 'Setup'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <View style={{ flex: 1 }}>
+              <Text style={styles.printerStatusText}>
+                Printer module not available
+              </Text>
+              <TouchableOpacity 
+                style={styles.retryButton}
+                onPress={async () => {
+                  try {
+                    const p = await getPrinter();
+                    setPrinterModule(p);
+                  } catch (err) {
+                    console.error("Retry failed:", err);
+                  }
+                }}
+              >
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+        {isPrinting && (
+          <View style={styles.printingIndicator}>
+            <ActivityIndicator size="small" color="#4F46E5" />
+            <Text style={styles.printingText}>Printing...</Text>
+          </View>
+        )}
+      </View>
       <TouchableOpacity style={styles.button} onPress={saveAsImage} disabled={isPrinting}>
         <Text style={styles.buttonText}>🖼️ Save as Image</Text>
       </TouchableOpacity>
@@ -478,18 +650,21 @@ export default function ReceiptPrint() {
         style={[
           styles.button,
           isPrinting && styles.disabledButton,
-          !printerConnected && styles.disabledButton
+          (!PrinterModule || !printerConnected) && styles.disabledButton
         ]} 
         onPress={handlePrint}
-        disabled={isPrinting || !printerConnected}
+        disabled={isPrinting || !PrinterModule || !printerConnected}
       >
         {isPrinting ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.buttonText}>🖨️ Print Receipt</Text>
+          <Text style={styles.buttonText}>
+            {PrinterModule ? '🖨️ Print Receipt' : 'Printer Not Available'}
+          </Text>
         )}
       </TouchableOpacity>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -508,6 +683,18 @@ const styles = StyleSheet.create({
     fontSize: wp('5.5%'),
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  address: {
+  fontSize: wp('3.2%'),
+  textAlign: 'center',
+  color: '#374151',
+  marginTop: hp('0.5%'),
+  },
+  contact: {
+    fontSize: wp('3.2%'),
+    textAlign: 'center',
+    color: '#374151',
+    marginBottom: hp('1%'),
   },
   tagline: {
     fontSize: wp('3.2%'),
@@ -600,6 +787,23 @@ const styles = StyleSheet.create({
     padding: hp('1.5%'),
     borderRadius: wp('2%'),
     marginBottom: hp('1%'),
+  },
+  printerStatusIndicator: {
+    width: wp('3%'),        // Use responsive width
+    height: wp('3%'),       // Use responsive height
+    borderRadius: wp('1.5%'), // Half of width/height for perfect circle
+    marginRight: wp('2%'),  // Use responsive margin
+  },
+  retryButton: {
+    backgroundColor: '#F59E0B',
+    padding: 8,
+    borderRadius: 4,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: wp('3.2%'),
   },
   printerStatusText: {
     fontSize: wp('3.5%'),
