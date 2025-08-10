@@ -78,6 +78,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    marginBottom: hp('2%'),
   },
   gridItem: {
     backgroundColor: '#FBBF24',

@@ -276,8 +276,9 @@ export default function PrintConfig({ navigation }: { navigation: any }) {
       await BluetoothEscposPrinter.printText('Contact: +639617287606\n\r', {});
 
       // Divider line
-      await BluetoothEscposPrinter.printText('────────────────────────\n\r', {});
-
+      await BluetoothEscposPrinter.printText("--------------------------------\n\r", {
+        alignment: BluetoothEscposPrinter.ALIGN.CENTER
+      });
       // Test message
       await BluetoothEscposPrinter.printText('Hello from EggCited App!\n\r', {
         encoding: 'GBK',
@@ -290,7 +291,9 @@ export default function PrintConfig({ navigation }: { navigation: any }) {
       await BluetoothEscposPrinter.printText('This is a test print.\n\r', {});
 
       // Divider and footer
-      await BluetoothEscposPrinter.printText('────────────────────────\n\r', {});
+      await BluetoothEscposPrinter.printText("--------------------------------\n\r", {
+        alignment: BluetoothEscposPrinter.ALIGN.CENTER
+      });
       await BluetoothEscposPrinter.printText('Thank you & Have a nice day!\n\r', {});
 
       await BluetoothEscposPrinter.printText('\n\r\n\r', {}); // space before cut

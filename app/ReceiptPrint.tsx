@@ -81,6 +81,9 @@ export default function ReceiptPrint() {
   const ampm = hours >= 12 ? "PM" : "AM";
   hours = hours % 12 || 12;
   const timeStr = `${hours}:${minutes}${ampm}`;
+  const printDivider = async (char = '─', length = 32) => {
+    await BluetoothEscposPrinter.printText(char.repeat(length) + '\n\r', {});
+  };
 
   useEffect(() => {
     if (Platform.OS === 'android') {
@@ -205,18 +208,11 @@ export default function ReceiptPrint() {
       await BluetoothEscposPrinter.printText("Purok 10 Tambacan, Iligan City\n\r", {});
       await BluetoothEscposPrinter.printText("+639617287606\n\r", {});
       await BluetoothEscposPrinter.printText(`Receipt #: ${receiptNo}\n\r`, {});
-      await BluetoothEscposPrinter.printText(" \n\r", { underline: 1 });
-      await BluetoothEscposPrinter.printText(" \n\r", { underline: 0 });
-
+      await BluetoothEscposPrinter.printText("--------------------------------\n\r", {
+        alignment: BluetoothEscposPrinter.ALIGN.CENTER
+      });
       // --- PRINT RECEIPT CONTENT ---
       await printReceiptContent();
-
-      await BluetoothEscposPrinter.printText(" \n\r", { underline: 1 });
-      await BluetoothEscposPrinter.printText(" \n\r", { underline: 0 });
-      await BluetoothEscposPrinter.printText(`Item/s: ${itemCount}\n\r`, {});
-      await BluetoothEscposPrinter.printText(`Date: ${dateStr} ${timeStr}\n\r`, {});
-      await BluetoothEscposPrinter.printText(" \n\r", { underline: 1 });
-      await BluetoothEscposPrinter.printText(" \n\r", { underline: 0 });
 
       // --- FOOTER ---
       await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
@@ -242,8 +238,9 @@ export default function ReceiptPrint() {
         if (customerNumber) await BluetoothEscposPrinter.printText(`Contact: ${customerNumber}\n\r`, {});
         if (customerAddress) await BluetoothEscposPrinter.printText(`Address: ${customerAddress}\n\r`, {});
         if (notes) await BluetoothEscposPrinter.printText(`Notes: ${notes}\n\r`, {});
-        await BluetoothEscposPrinter.printText(" \n\r", { underline: 1 });
-        await BluetoothEscposPrinter.printText(" \n\r", { underline: 0 });
+        await BluetoothEscposPrinter.printText("--------------------------------\n\r", {
+          alignment: BluetoothEscposPrinter.ALIGN.CENTER
+        });
       }
 
       // --- ORDER HEADER ---
@@ -258,8 +255,9 @@ export default function ReceiptPrint() {
         ["ITEM", "QTY", "PRICE", "TOTAL"],
         {}
       );
-      await BluetoothEscposPrinter.printText(" \n\r", { underline: 1 });
-      await BluetoothEscposPrinter.printText(" \n\r", { underline: 0 });
+      await BluetoothEscposPrinter.printText("--------------------------------\n\r", {
+        alignment: BluetoothEscposPrinter.ALIGN.CENTER
+      });
 
       // --- ORDER ITEMS ---
       for (const item of cart) {
@@ -298,9 +296,16 @@ export default function ReceiptPrint() {
           }
         }
       }
-      await BluetoothEscposPrinter.printText(" \n\r", { underline: 1 });
-      await BluetoothEscposPrinter.printText(" \n\r", { underline: 0 });
+      await BluetoothEscposPrinter.printText("--------------------------------\n\r", {
+        alignment: BluetoothEscposPrinter.ALIGN.CENTER
+      });
+      await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.LEFT);
+      await BluetoothEscposPrinter.printText(`Item/s: ${itemCount}\n\r`, {});
+      await BluetoothEscposPrinter.printText(`Date: ${dateStr} ${timeStr}\n\r`, {});
 
+      await BluetoothEscposPrinter.printText("--------------------------------\n\r", {
+        alignment: BluetoothEscposPrinter.ALIGN.CENTER
+      });
       // --- TOTALS ---
       await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.RIGHT);
       await BluetoothEscposPrinter.printText(`Subtotal: P${subtotal.toFixed(2)}\n\r`, {});
@@ -314,9 +319,9 @@ export default function ReceiptPrint() {
       await BluetoothEscposPrinter.printText(`RECEIVED (${method}): P${parseFloat(received as string).toFixed(2)}\n\r`, {});
       await BluetoothEscposPrinter.printText(`CHANGE: P${parseFloat(change as string).toFixed(2)}\n\r`, {});
 
-      await BluetoothEscposPrinter.printText(" \n\r", { underline: 1 });
-      await BluetoothEscposPrinter.printText(" \n\r", { underline: 0 });
-
+      await BluetoothEscposPrinter.printText("--------------------------------\n\r", {
+        alignment: BluetoothEscposPrinter.ALIGN.CENTER
+      });
 
     } catch (error) {
       console.error('Error printing content:', error);

@@ -130,7 +130,7 @@ export default function AmountReceived() {
         orderId,
         timestamp: new Date().toISOString(),
         total: parseFloat(payable.toFixed(2)),
-        paymentMethodId: method === 'Cash' ? 1 : method === 'Credit' ? 2 : null,
+        paymentMethodId: method === 'Cash' ? 1 : method === 'Credit' ? 2 : method === 'GCash' ? 3 : null,
         discount: parseFloat(parsedDiscount.toFixed(2)), // Include discount
         deliveryFee: parseFloat(parsedDeliveryFee.toFixed(2)), // Include deliveryFee
         items: cart.map(item => ({
