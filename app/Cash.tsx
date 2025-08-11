@@ -30,6 +30,17 @@ export default function Cash() {
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
+  const formatDateTime = (timestamp: string) => {
+    const now = new Date(timestamp);
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    let hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+
+    return `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}  ${hours}:${minutes} ${ampm}`;
+  };
 
   useEffect(() => {
     fetchTransactions();
@@ -46,6 +57,12 @@ export default function Cash() {
         amount: parseFloat(transaction.amount) || 0,
         timestamp: transaction.timestamp ? new Date(transaction.timestamp).toISOString() : '',
       }));
+      fetchedTransactions.sort((a, b) => {
+        if (b.amount !== a.amount) {
+          return b.amount - a.amount;
+        }
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      });
       setTransactions(fetchedTransactions);
       if (!hasShownInitialToast) {
         Toast.show({
@@ -162,7 +179,7 @@ export default function Cash() {
       <View style={{ flex: 1 }}>
         <Text style={styles.orderId}>🧾 {item.orderId}</Text>
         <Text style={styles.timestamp}>
-          🕒 {new Date(item.timestamp).toLocaleString()}
+          🕒 {formatDateTime(item.timestamp)}
         </Text>
       </View>
       <View style={styles.actions}>

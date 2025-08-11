@@ -31,7 +31,18 @@ export default function Expenses() {
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<number | null>(null);
   const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
+  const formatDateTime = (timestamp: string) => {
+    const now = new Date(timestamp);
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    let hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
 
+    return `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}  ${hours}:${minutes} ${ampm}`;
+  };
+  
   useEffect(() => {
     fetchExpenses();
   }, []);
@@ -196,7 +207,7 @@ export default function Expenses() {
         <Text style={styles.type}>{item.type}</Text>
         <Text style={styles.remarks}>{item.remarks || 'No remarks'}</Text>
         <Text style={styles.datetime}>
-          {new Date(item.timestamp).toLocaleString()}
+          {formatDateTime(item.timestamp)}
         </Text>
       </View>
       <View style={styles.side}>

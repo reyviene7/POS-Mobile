@@ -35,9 +35,19 @@ export default function ShiftSummary() {
   const [hasShownInitialToast, setHasShownInitialToast] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const totalSales = orders.reduce((sum, order) => sum + (order.grandTotal || 0), 0);
+  const formatDateTime = (timestamp: string) => {
+    const now = new Date(timestamp);
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    let hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
 
+    return `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}  ${hours}:${minutes} ${ampm}`;
+  };
+  
   const fetchTodaySales = async () => {
     setLoading(true);
     setError(null);
@@ -128,7 +138,7 @@ export default function ShiftSummary() {
         <View style={styles.cardTop}>
           <Text style={styles.orderId}>Order #{item.orderId}</Text>
           <Text style={styles.timestamp}>
-            {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {formatDateTime(item.timestamp)}
           </Text>
         </View>
         {item.items.map((subItem, index) => (

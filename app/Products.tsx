@@ -55,11 +55,10 @@ const styles = StyleSheet.create({
   },
   grid: {
     flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    alignItems: 'center',
     flexWrap: 'wrap',
-    rowGap: hp('2%'), // only works on RN 0.73+
-    columnGap: wp('4%'), // only works on RN 0.73+
+    justifyContent: 'space-between', 
+    paddingHorizontal: wp('7%'),    
+    marginTop: hp('2%'),
   },
   button: {
     width: wp('40%'),

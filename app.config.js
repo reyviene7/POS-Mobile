@@ -42,7 +42,6 @@ module.exports = {
       [
         'expo-splash-screen',
         {
-          image: 'https://res.cloudinary.com/dzwjjpvdb/image/upload/v1750505959/EggCited/ixxau4ellammx0drebgo.png',
           resizeMode: 'contain',    
           backgroundColor: '#FEDD56',
         },
