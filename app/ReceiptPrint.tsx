@@ -5,6 +5,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
+  Platform,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,6 +20,7 @@ import {
 } from 'react-native-responsive-screen';
 import Toast from 'react-native-toast-message';
 import { captureRef } from 'react-native-view-shot';
+import { getPrinter } from "../src/constants/printerUtils";
 
 type Product = {
   productId: string;
@@ -40,9 +44,14 @@ type CartItem = {
   addons: { [addonId: string]: number };
   addonDetails: Addon[];
 };
-
+export const screenOptions = {
+  contentStyle: { backgroundColor: '#FFFDE7' },
+};
 export default function ReceiptPrint() {
   const router = useRouter();
+  const [printerConnected, setPrinterConnected] = useState(false);
+  const [printerName, setPrinterName] = useState('');
+  const [isPrinting, setIsPrinting] = useState(false);
   const {
     cart: cartString,
     customerName,
@@ -62,6 +71,41 @@ export default function ReceiptPrint() {
   const parsedDiscount = parseFloat(discount as string || '0') || 0;
   const parsedDeliveryFee = parseFloat(deliveryFee as string || '0') || 0;
   const receiptRef = useRef(null);
+  const [PrinterModule, setPrinterModule] = useState<any>(null);
+  const now = new Date();
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const dateStr = `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+  let hours = now.getHours();
+  const minutes = now.getMinutes().toString().padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+  const timeStr = `${hours}:${minutes}${ampm}`;
+  const printDivider = async (char = '─', length = 32) => {
+    await BluetoothEscposPrinter.printText(char.repeat(length) + '\n\r', {});
+  };
+
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      (async () => {
+        try {
+          const p = await getPrinter();
+          setPrinterModule(p);
+
+          if (p) {
+          const printerJson = await AsyncStorage.getItem('selectedPrinter');
+          if (printerJson) {
+            const printerData = JSON.parse(printerJson);
+            setPrinterName(printerData.name);
+            setPrinterConnected(printerData.connected || false);
+          }
+        }
+        } catch (err) {
+          console.error("Failed to load printer:", err);
+        }
+      })();
+    }
+  }, []);
 
   useEffect(() => {
     const loadReceiptNo = async () => {
@@ -83,6 +127,208 @@ export default function ReceiptPrint() {
     }
   }, [receivedReceiptNo]);
 
+  useEffect(() => {
+    const loadPrinter = async () => {
+      try {
+        const printerJson = await AsyncStorage.getItem('selectedPrinter');
+        if (printerJson) {
+          const printerData = JSON.parse(printerJson);
+          setPrinterName(printerData.name);
+          setPrinterConnected(printerData.connected || false);
+
+          if (!printerData.connected && PrinterModule) {
+          try {
+            await PrinterModule.BluetoothManager.connect(printerData.address);
+            setPrinterConnected(true);
+          } catch (err) {
+            console.error('Reconnection failed:', err);
+          }
+        }
+        }
+        else {
+        console.log('No printer found in AsyncStorage');
+        setPrinterConnected(false);
+        }
+      } catch (err) {
+        console.error('Failed to load printer:', err);
+      }
+    };
+    loadPrinter();
+  }, []);
+
+    if (!PrinterModule) {
+    return (
+      <View style={{ padding: 20 }}>
+        <Text>Loading printer module…</Text>
+      </View>
+    );
+  }
+  
+  const { BluetoothEscposPrinter, BluetoothManager } = PrinterModule;
+  
+  const handlePrint = async () => {
+    if (!PrinterModule) {
+      Toast.show({
+        type: 'error',
+        text1: 'Printer Not Available',
+        text2: 'Printer module could not be loaded',
+      });
+      router.push('/PrintConfig');
+      return;
+    }
+
+    setIsPrinting(true);
+    try {
+      const printerJson = await AsyncStorage.getItem('selectedPrinter');
+      if (!printerJson) throw new Error('No printer configured');
+      const printerData = JSON.parse(printerJson);
+      
+      const isBluetoothEnabled = await BluetoothManager.checkBluetoothEnabled();
+      if (!isBluetoothEnabled) {
+        await BluetoothManager.enableBluetooth();
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+
+      // Connect only if not already connected
+      await BluetoothManager.connect(printerData.address);
+
+      // Init printer
+      await BluetoothEscposPrinter.printerInit();
+      await BluetoothEscposPrinter.setBlob(1);
+
+      // --- HEADER ---
+      await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
+      await BluetoothEscposPrinter.printText("EggCited\n\r", {
+        encoding: 'GBK',
+        codepage: 0,
+        widthtimes: 1,
+        heigthtimes: 1,
+        fonttype: 1
+      });
+      await BluetoothEscposPrinter.printText("Purok 10 Tambacan, Iligan City\n\r", {});
+      await BluetoothEscposPrinter.printText("+639617287606\n\r", {});
+      await BluetoothEscposPrinter.printText(`Receipt #: ${receiptNo}\n\r`, {});
+      await BluetoothEscposPrinter.printText("--------------------------------\n\r", {
+        alignment: BluetoothEscposPrinter.ALIGN.CENTER
+      });
+      // --- PRINT RECEIPT CONTENT ---
+      await printReceiptContent();
+
+      // --- FOOTER ---
+      await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.CENTER);
+      await BluetoothEscposPrinter.printText("\n\rTHIS IS NOT AN OFFICIAL RECEIPT\n\r", {});
+      await BluetoothEscposPrinter.printText("\n\rThank You!\n\r", {});
+      await BluetoothEscposPrinter.printText("\n\r\n\r", {}); // feed paper
+
+      Toast.show({ type: 'success', text1: 'Print Successful' });
+    } catch (err) {
+      console.error(err);
+      Toast.show({ type: 'error', text1: 'Print Error', text2: 'Failed to print' });
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
+  const printReceiptContent = async () => {
+    try {
+      // --- CUSTOMER INFO ---
+      if (customerName || customerNumber || customerAddress || notes) {
+        await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.LEFT);
+        if (customerName) await BluetoothEscposPrinter.printText(`Name: ${customerName}\n\r`, {});
+        if (customerNumber) await BluetoothEscposPrinter.printText(`Contact: ${customerNumber}\n\r`, {});
+        if (customerAddress) await BluetoothEscposPrinter.printText(`Address: ${customerAddress}\n\r`, {});
+        if (notes) await BluetoothEscposPrinter.printText(`Notes: ${notes}\n\r`, {});
+        await BluetoothEscposPrinter.printText("--------------------------------\n\r", {
+          alignment: BluetoothEscposPrinter.ALIGN.CENTER
+        });
+      }
+
+      // --- ORDER HEADER ---
+      await BluetoothEscposPrinter.printColumn(
+        [12, 4, 8, 8], // width in characters
+        [
+          BluetoothEscposPrinter.ALIGN.LEFT,
+          BluetoothEscposPrinter.ALIGN.RIGHT,
+          BluetoothEscposPrinter.ALIGN.RIGHT,
+          BluetoothEscposPrinter.ALIGN.RIGHT
+        ],
+        ["ITEM", "QTY", "PRICE", "TOTAL"],
+        {}
+      );
+      await BluetoothEscposPrinter.printText("--------------------------------\n\r", {
+        alignment: BluetoothEscposPrinter.ALIGN.CENTER
+      });
+
+      // --- ORDER ITEMS ---
+      for (const item of cart) {
+        const productName = `${item.product.productName}${item.product.size ? ` (${item.product.size})` : ''}${item.product.flavorName ? ` - ${item.product.flavorName}` : ''}`;
+        const qty = item.quantity.toString();
+        const price = `${item.product.price.toFixed(2)}`;
+        const total = `${(item.product.price * item.quantity).toFixed(2)}`;
+
+        await BluetoothEscposPrinter.printColumn(
+          [12, 4, 8, 8],
+          [
+            BluetoothEscposPrinter.ALIGN.LEFT,
+            BluetoothEscposPrinter.ALIGN.RIGHT,
+            BluetoothEscposPrinter.ALIGN.RIGHT,
+            BluetoothEscposPrinter.ALIGN.RIGHT
+          ],
+          [productName, qty, price, total],
+          {}
+        );
+
+        // Addons (indented)
+        for (const [addonId, qtyAddon] of Object.entries(item.addons)) {
+          const addon = item.addonDetails?.find(a => a.addonId === Number(addonId));
+          if (addon) {
+            await BluetoothEscposPrinter.printColumn(
+              [12, 4, 8, 8],
+              [
+                BluetoothEscposPrinter.ALIGN.LEFT,
+                BluetoothEscposPrinter.ALIGN.RIGHT,
+                BluetoothEscposPrinter.ALIGN.RIGHT,
+                BluetoothEscposPrinter.ALIGN.RIGHT
+              ],
+              [`  + ${addon.addonName}`, qtyAddon.toString(), `P${addon.price.toFixed(2)}`, `P${(addon.price * qtyAddon).toFixed(2)}`],
+              {}
+            );
+          }
+        }
+      }
+      await BluetoothEscposPrinter.printText("--------------------------------\n\r", {
+        alignment: BluetoothEscposPrinter.ALIGN.CENTER
+      });
+      await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.LEFT);
+      await BluetoothEscposPrinter.printText(`Item/s: ${itemCount}\n\r`, {});
+      await BluetoothEscposPrinter.printText(`Date: ${dateStr} ${timeStr}\n\r`, {});
+
+      await BluetoothEscposPrinter.printText("--------------------------------\n\r", {
+        alignment: BluetoothEscposPrinter.ALIGN.CENTER
+      });
+      // --- TOTALS ---
+      await BluetoothEscposPrinter.printerAlign(BluetoothEscposPrinter.ALIGN.RIGHT);
+      await BluetoothEscposPrinter.printText(`Subtotal: P${subtotal.toFixed(2)}\n\r`, {});
+      if (parsedDiscount > 0) {
+        await BluetoothEscposPrinter.printText(`Discount: -P${parsedDiscount.toFixed(2)}\n\r`, {});
+      }
+      if (parsedDeliveryFee > 0) {
+        await BluetoothEscposPrinter.printText(`Delivery Fee: P${parsedDeliveryFee.toFixed(2)}\n\r`, {});
+      }
+      await BluetoothEscposPrinter.printText(`TOTAL: P${parseFloat(total as string).toFixed(2)}\n\r`, {});
+      await BluetoothEscposPrinter.printText(`RECEIVED (${method}): P${parseFloat(received as string).toFixed(2)}\n\r`, {});
+      await BluetoothEscposPrinter.printText(`CHANGE: P${parseFloat(change as string).toFixed(2)}\n\r`, {});
+
+      await BluetoothEscposPrinter.printText("--------------------------------\n\r", {
+        alignment: BluetoothEscposPrinter.ALIGN.CENTER
+      });
+
+    } catch (error) {
+      console.error('Error printing content:', error);
+      throw error;
+    }
+  };
+
   const calculateSubtotal = () => {
     let subtotal = 0;
     if (Array.isArray(cart)) {
@@ -100,7 +346,6 @@ export default function ReceiptPrint() {
 
   const subtotal = calculateSubtotal();
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-
   const saveAsImage = async () => {
     const permission = await MediaLibrary.requestPermissionsAsync();
     if (!permission.granted) {
@@ -170,32 +415,6 @@ export default function ReceiptPrint() {
     }
   };
 
-  const handlePrint = async () => {
-    try {
-      Toast.show({
-        type: 'info',
-        text1: '🖨️ Printing Receipt',
-        text2: 'Sending data to thermal printer...',
-        position: 'top',
-        visibilityTime: 3000,
-        autoHide: true,
-        topOffset: 40,
-      });
-      // ThermalPrinterModule.printText(generateHTMLReceipt()); // Placeholder for actual printer integration
-    } catch (error) {
-      console.error(error);
-      Toast.show({
-        type: 'error',
-        text1: '🖨️ Print Failed',
-        text2: 'Printing failed.',
-        position: 'top',
-        visibilityTime: 3000,
-        autoHide: true,
-        topOffset: 40,
-      });
-    }
-  };
-
   const generateHTMLReceipt = () => {
     const rows = cart
       .map(
@@ -245,7 +464,8 @@ export default function ReceiptPrint() {
       <body style="font-family:monospace;padding:10px;">
         <div style="text-align:center;">
           <h2>EggCited</h2>
-          <p><em>At EggCited, we take the humble egg sandwich to the next level</em></p>
+          <p>Purok 10 Tambacan, Iligan City 9200</p>
+          <p>Contact: +639617287606</p>
           <p>Receipt No: ${receiptNo}</p>
         </div>
         <hr />
@@ -261,7 +481,7 @@ export default function ReceiptPrint() {
         </table>
         <hr />
         <p>Item/s: ${itemCount}</p>
-        <p>Date | Time: ${new Date().toLocaleString()}</p>
+        <p>Date | Time: ${dateStr} ${timeStr}</p>
         <hr />
         <div style="text-align:right;">
           <p>Subtotal: ₱${subtotal.toFixed(2)}</p>
@@ -280,11 +500,13 @@ export default function ReceiptPrint() {
     `;
   };
 
-  return (
+  return (  
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFDE7' }}>
     <ScrollView contentContainerStyle={styles.container}>
       <View ref={receiptRef} collapsable={false} style={styles.receipt}>
         <Text style={styles.storeName}>EggCited</Text>
-        <Text style={styles.tagline}>At EggCited, we take the humble egg sandwich to the next level</Text>
+        <Text style={styles.address}>Purok 10 Tambacan, Iligan City 9200</Text>
+        <Text style={styles.contact}>Contact: +639617287606</Text>
         <Text style={styles.receiptNo}>Receipt No: {receiptNo}</Text>
 
         {(customerName || customerNumber || customerAddress || notes) && (
@@ -333,7 +555,7 @@ export default function ReceiptPrint() {
 
         <View style={styles.divider} />
         <Text style={styles.meta}>Item/s: {itemCount}</Text>
-        <Text style={styles.meta}>Date | Time: {new Date().toLocaleString()}</Text>
+        <Text style={styles.meta}>Date | Time: {dateStr} {timeStr}</Text>
 
         <View style={styles.divider} />
         <View style={styles.totalContainer}>
@@ -351,18 +573,83 @@ export default function ReceiptPrint() {
         <Text style={styles.footer}>Please Ask For A Cash Sales Invoice</Text>
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={saveAsImage}>
+      <View style={styles.printerStatusContainer}>
+        <View style={styles.printerStatus}>
+          {PrinterModule ? (
+            <>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={[
+                  styles.printerStatusIndicator,
+                  { backgroundColor: printerConnected ? '#10B981' : '#EF4444' }
+                ]} />
+                <Text style={styles.printerStatusText}>
+                  {printerConnected ? `Connected to ${printerName}` : 'Printer Not Connected'}
+                </Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.printerConfigButton}
+                onPress={() => router.push('/PrintConfig')}
+              >
+                <Text style={styles.printerConfigText}>
+                  {printerConnected ? 'Change' : 'Setup'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <View style={{ flex: 1 }}>
+              <Text style={styles.printerStatusText}>
+                Printer module not available
+              </Text>
+              <TouchableOpacity 
+                style={styles.retryButton}
+                onPress={async () => {
+                  try {
+                    const p = await getPrinter();
+                    setPrinterModule(p);
+                  } catch (err) {
+                    console.error("Retry failed:", err);
+                  }
+                }}
+              >
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+        {isPrinting && (
+          <View style={styles.printingIndicator}>
+            <ActivityIndicator size="small" color="#4F46E5" />
+            <Text style={styles.printingText}>Printing...</Text>
+          </View>
+        )}
+      </View>
+      <TouchableOpacity style={styles.button} onPress={saveAsImage} disabled={isPrinting}>
         <Text style={styles.buttonText}>🖼️ Save as Image</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button} onPress={shareAsPDF}>
+      <TouchableOpacity style={styles.button} onPress={shareAsPDF} disabled={isPrinting}>
         <Text style={styles.buttonText}>📄 Share as PDF</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button} onPress={handlePrint}>
-        <Text style={styles.buttonText}>🖨️ Print Receipt</Text>
+      <TouchableOpacity 
+        style={[
+          styles.button,
+          isPrinting && styles.disabledButton,
+          (!PrinterModule || !printerConnected) && styles.disabledButton
+        ]} 
+        onPress={handlePrint}
+        disabled={isPrinting || !PrinterModule || !printerConnected}
+      >
+        {isPrinting ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>
+            {PrinterModule ? '🖨️ Print Receipt' : 'Printer Not Available'}
+          </Text>
+        )}
       </TouchableOpacity>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -381,6 +668,18 @@ const styles = StyleSheet.create({
     fontSize: wp('5.5%'),
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  address: {
+  fontSize: wp('3.2%'),
+  textAlign: 'center',
+  color: '#374151',
+  marginTop: hp('0.5%'),
+  },
+  contact: {
+    fontSize: wp('3.2%'),
+    textAlign: 'center',
+    color: '#374151',
+    marginBottom: hp('1%'),
   },
   tagline: {
     fontSize: wp('3.2%'),
@@ -460,5 +759,64 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: wp('3.8%'),
+  },
+    printerStatusContainer: {
+    marginBottom: hp('2%'),
+    width: '100%',
+  },
+  printerStatus: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    padding: hp('1.5%'),
+    borderRadius: wp('2%'),
+    marginBottom: hp('1%'),
+  },
+  printerStatusIndicator: {
+    width: wp('3%'),        // Use responsive width
+    height: wp('3%'),       // Use responsive height
+    borderRadius: wp('1.5%'), // Half of width/height for perfect circle
+    marginRight: wp('2%'),  // Use responsive margin
+  },
+  retryButton: {
+    backgroundColor: '#F59E0B',
+    padding: 8,
+    borderRadius: 4,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: wp('3.2%'),
+  },
+  printerStatusText: {
+    fontSize: wp('3.5%'),
+    color: '#333',
+  },
+  printerConfigButton: {
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.8%'),
+    borderRadius: wp('1.5%'),
+  },
+  printerConfigText: {
+    color: '#fff',
+    fontSize: wp('3.2%'),
+  },
+  printingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: hp('1%'),
+  },
+  printingText: {
+    marginLeft: wp('2%'),
+    color: '#4F46E5',
+    fontSize: wp('3.5%'),
+  },
+  disabledButton: {
+    backgroundColor: '#a5b4fc',
+    opacity: 0.7,
   },
 });

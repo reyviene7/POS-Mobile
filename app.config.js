@@ -8,18 +8,29 @@ module.exports = {
     orientation: 'portrait',
     icon: 'https://res.cloudinary.com/dzwjjpvdb/image/upload/v1750444683/EggCited/q0bpsuj3u1t6xmmobxvk.jpg',
     scheme: 'posmobile',
+    jsEngine: "jsc",
     userInterfaceStyle: 'automatic',
     newArchEnabled: true,
     ios: {
       supportsTablet: true,
+      bundleIdentifier: 'com.reyviene7.posmobile',
     },
     android: {
       adaptiveIcon: {
         foregroundImage: 'https://res.cloudinary.com/dzwjjpvdb/image/upload/v1750444683/EggCited/q0bpsuj3u1t6xmmobxvk.jpg',
-        backgroundColor: '#ffffff',
+        backgroundColor: '#FEDD56',
       },
+      jsEngine: "jsc",
       edgeToEdgeEnabled: true,
       package: 'com.reyviene7.posmobile',
+      permissions: [
+        'BLUETOOTH',
+        'BLUETOOTH_ADMIN',
+        'BLUETOOTH_CONNECT',
+        'BLUETOOTH_SCAN',
+        'ACCESS_FINE_LOCATION',
+        'ACCESS_COARSE_LOCATION' 
+      ]
     },
     web: {
       bundler: 'metro',
@@ -31,10 +42,8 @@ module.exports = {
       [
         'expo-splash-screen',
         {
-          image: 'https://res.cloudinary.com/dzwjjpvdb/image/upload/v1750444683/EggCited/q0bpsuj3u1t6xmmobxvk.jpg',
-          imageWidth: 200,
-          resizeMode: 'contain',
-          backgroundColor: '#ffffff',
+          resizeMode: 'contain',    
+          backgroundColor: '#FEDD56',
         },
       ],
     ],

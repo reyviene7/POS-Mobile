@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import Toast from 'react-native-toast-message';
+import api from '../api';
 
 type Product = {
   productId: string;
@@ -61,21 +62,26 @@ export default function ConfirmOrder() {
   const [tempDeliveryFee, setTempDeliveryFee] = useState('');
   const [receiptNo, setReceiptNo] = useState('000001');
   const [showCustomerDetails, setShowCustomerDetails] = useState(false);
+  const handleClearFeesAndDiscount = () => {
+    setDeliveryFee(0);
+    setDiscount(0);
+  };
 
   useEffect(() => {
     const initialize = async () => {
       try {
-        // Load receipt number
-        const storedReceiptNo = await AsyncStorage.getItem('receiptNo');
-        if (storedReceiptNo) {
-          const num = parseInt(storedReceiptNo, 10);
-          setReceiptNo(num.toString().padStart(6, '0'));
-        } else {
-          await AsyncStorage.setItem('receiptNo', '1');
-          setReceiptNo('000001');
-        }
+        const response = await api.get('/sales-history/last-order-id');
+        console.log('API response:', response.data); // 🔍 log this
 
-        // Update cart state if cartString changes
+        const lastOrderId = response.data;
+
+        const newReceiptNo = (lastOrderId + 1).toString().padStart(6, '0');
+        setReceiptNo(newReceiptNo);
+        console.log(newReceiptNo); // should show '000024'
+
+        await AsyncStorage.setItem('receiptNo', (lastOrderId + 1).toString());
+
+        // Existing cart logic
         if (cartString) {
           const parsedCart = JSON.parse(
             Array.isArray(cartString) ? cartString[0] : cartString
@@ -91,9 +97,10 @@ export default function ConfirmOrder() {
         console.log('ConfirmOrder: AsyncStorage cart:', storedCart);
       } catch (error) {
         console.error('Failed to initialize ConfirmOrder:', error);
-        setCart([]);
+        setReceiptNo('000001');
       }
     };
+
     initialize();
   }, [cartString]);
 
@@ -250,6 +257,10 @@ export default function ConfirmOrder() {
   };
 
   return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+     >
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
@@ -342,24 +353,33 @@ export default function ConfirmOrder() {
           </View>
         </View>
 
-        <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleAddItems}>
-            <Text style={styles.actionButtonText}>Add Items</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={() => setShowDiscountModal(true)}>
-            <Text style={styles.actionButtonText}>Discount</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={() => setShowDeliveryFeeModal(true)}>
-            <Text style={styles.actionButtonText}>Delivery Fee</Text>
-          </TouchableOpacity>
-        </View>
+       <View style={styles.actionButtons}>
+        <TouchableOpacity style={styles.actionButton} onPress={handleAddItems}>
+          <Text style={styles.actionButtonText}>Add Items</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.actionButton} onPress={() => setShowDiscountModal(true)}>
+          <Text style={styles.actionButtonText}>Discount</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.actionButton} onPress={() => setShowDeliveryFeeModal(true)}>
+          <Text style={styles.actionButtonText}>Delivery Fee</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.actionButton, styles.clearButton]}
+          onPress={handleClearFeesAndDiscount}
+        >
+          <Ionicons name="trash-outline" size={18} color="#fff" />
+        </TouchableOpacity>
+      </View>
 
         <TouchableOpacity
           style={styles.detailsToggle}
           onPress={() => setShowCustomerDetails(!showCustomerDetails)}
         >
           <Text style={styles.detailsToggleText}>
-            Customer's Details and Notes (Optional)
+            Customer&apos;s Details and Notes (Optional)
           </Text>
           <Text style={styles.detailsToggleArrow}>
             {showCustomerDetails ? '▲' : '▼'}
@@ -449,10 +469,6 @@ export default function ConfirmOrder() {
         visible={showDeliveryFeeModal}
         onRequestClose={() => setShowDeliveryFeeModal(false)}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
           <View style={styles.modalBackground}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Add Delivery Fee</Text>
@@ -480,9 +496,9 @@ export default function ConfirmOrder() {
               </View>
             </View>
           </View>
-        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -633,6 +649,9 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     marginHorizontal: wp('0.5%'),
     elevation: 2,
+  },
+  clearButton: {
+  backgroundColor: '#DC2626',
   },
   actionButtonText: {
     color: '#78350F',

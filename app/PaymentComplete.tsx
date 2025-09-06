@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
+  BackHandler,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -18,6 +20,40 @@ export default function PaymentComplete() {
   const router = useRouter();
   const { total, received, change, method, cart, customerName, customerNumber, customerAddress, notes, discount, deliveryFee, receiptNo: receivedReceiptNo } = useLocalSearchParams();
   const [receiptNo, setReceiptNo] = useState(receivedReceiptNo as string || '000001');
+  const navigation = useNavigation();
+  
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        router.replace('/Home');
+        return true; // Prevent default back behavior
+      };
+
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      
+      // Disable swipe back gesture
+      navigation.setOptions?.({ 
+        gestureEnabled: false,
+        headerLeft: () => null // Remove default back button
+      });
+
+      return () => {
+        backHandler.remove();
+        // Reset navigation options when component unmounts
+        navigation.setOptions?.({ 
+          gestureEnabled: true,
+          headerLeft: undefined 
+        });
+      };
+    }, [router, navigation])
+  );
+
+  // Handle header back button
+  useEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => null, // Remove default back button
+    });
+  }, [navigation]);
 
   useEffect(() => {
     Toast.show({

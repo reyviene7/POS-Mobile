@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import Toast from "react-native-toast-message";
 import api from "../api";
 import OrderDetailsModal from "../src/components/modals/OrderDetailsModal";
@@ -53,6 +54,17 @@ export default function SalesHistory() {
   const [fromDate, setFromDate] = useState<Date | null>(null);
   const [toDate, setToDate] = useState<Date | null>(null);
   const [showPicker, setShowPicker] = useState<{ mode: "from" | "to" | null }>({ mode: null });
+  const formatDateTime = (timestamp: string) => {
+    const now = new Date(timestamp);
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    let hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+
+    return `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}  ${hours}:${minutes} ${ampm}`;
+  };
 
   const fetchSales = async () => {
     setLoading(true);
@@ -219,7 +231,7 @@ export default function SalesHistory() {
         <Text style={styles.paymentMethod}>Delivery Fee: ₱{(item.deliveryFee || 0).toFixed(2)}</Text>
         <Text style={styles.totalPrice}>Grand Total: ₱{(item.grandTotal || 0).toFixed(2)}</Text>
         <Text style={styles.timestamp}>
-          Timestamp: {new Date(item.timestamp).toLocaleString()}
+          Timestamp: {formatDateTime(item.timestamp)}
         </Text>
         <Text style={styles.paymentMethod}>
           Payment: {item.paymentMethod || "None"}

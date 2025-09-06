@@ -15,7 +15,8 @@ type AppRoutes =
   | '/Credit'
   | '/Cash'
   | '/StockManager'
-  | '/Sales';
+  | '/Sales'
+  | '/PrintConfig'; 
 
 interface MenuItem {
   label: string;
@@ -32,6 +33,7 @@ const menuItems: MenuItem[] = [
   { label: 'Cash', icon: 'money-check-alt', href: '/Cash' },
   { label: 'Stock Manager', icon: 'warehouse', href: '/StockManager' },
   { label: 'Sales', icon: 'shopping-cart', href: '/Sales' },
+  { label: 'Printer Setup', icon: 'print', href: '/PrintConfig' },
 ];
 
 export default function Inventory() {
@@ -76,6 +78,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    marginBottom: hp('2%'),
   },
   gridItem: {
     backgroundColor: '#FBBF24',
