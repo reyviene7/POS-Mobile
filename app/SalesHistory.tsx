@@ -14,6 +14,7 @@ import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-nat
 import Toast from "react-native-toast-message";
 import api from "../api";
 import OrderDetailsModal from "../src/components/modals/OrderDetailsModal";
+import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
 
 interface SalesHistoryDetailed {
   orderId: string;
